@@ -1,0 +1,20 @@
+SDP-BESR Interface v0.2.6
+Cinematic boot sequence implementation
+
+Implements the supplied nine-panel storyboard as a full-screen startup sequence.
+Sequence order is preserved exactly:
+1. Party Identity (00:00–00:02)
+2. Nigeria Map Zoom to Benue (00:02–00:04)
+3. Benue State Focus (00:04–00:06)
+4. System Modules Loading (00:06–00:08)
+5. Election Categories (00:08–00:10)
+6. Security and System Check (00:10–00:12)
+7. Inspirational Message (00:12–00:14)
+8. Final Loading (00:14–00:15)
+9. Dashboard reveal (00:15 onward)
+
+The storyboard panels are cropped directly from the supplied reference JPG and displayed in their original order without adding or removing stages. The final dashboard reveal uses the ninth storyboard panel briefly, then hands over to the existing interactive SDP-BESR dashboard.
+
+The boot sequence runs on each fresh page load. It is a visual startup presentation; it does not claim to perform actual authentication, server, database, or security checks. Those checks will be connected when the Supabase backend is implemented.
+
+Existing project files and assets are retained. Keep the assets/boot directory when uploading the project.

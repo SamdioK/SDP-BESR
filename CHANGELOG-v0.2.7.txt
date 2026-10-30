@@ -1,0 +1,16 @@
+SDP-BESR v0.2.7 — Animated device-style startup
+
+Replaces the previous sequence of static storyboard images with one continuous 15-second animated startup screen.
+
+Animation features:
+- Dark teal/green command-centre background with subtle animated grid.
+- Glowing concentric rings and rotating accent arcs.
+- SDP-BESR identity reveal.
+- Animated handshake emblem.
+- Animated progress bar and percentage from 0 to 100.
+- Timed startup status messages.
+- Smooth fade into the existing interactive dashboard.
+- Responsive layout for mobile and desktop.
+- Respects reduced-motion accessibility settings.
+
+No dashboard modules, election data, map code, or existing project assets were intentionally removed.

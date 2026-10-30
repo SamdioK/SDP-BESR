@@ -1,0 +1,8 @@
+SDP-BESR v0.2.8 — Cinematic galloping-horse startup
+
+- Replaced handshake startup with a continuous animated horse scene.
+- No slideshow, no timed stage labels, no visible countdown or loading percentage.
+- Animated galloping horse silhouette, luminous orbital rings, Benue-shaped map motif, horizon light trails and SDP-BESR identity.
+- 15-second startup before the existing dashboard appears.
+- Optional locally synthesised cinematic sound with rhythmic hoof-like impacts. Browser audio requires the user to tap “Enable sound”; startup animation itself begins automatically.
+- Existing dashboard and SDP logo retained.
