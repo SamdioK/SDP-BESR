@@ -1,0 +1,11 @@
+SDP-BESR Interface v0.2.9 — Global Digital-World Startup
+
+- Replaced the previous animated galloping-horse illustration with the supplied official SDP logo as a static image.
+- Removed all startup audio generation, audio controls and sound effects.
+- Added a cinematic digital-world background artwork featuring a luminous globe, world map, network arcs and green/orange/teal lighting.
+- Added subtle animated orbital rings, ambient light movement, grid drift, logo entrance/glow and a clean transition.
+- Retained the 15-second startup duration and existing dashboard.
+- The white horse remains only as part of the official static SDP logo; it is not animated.
+- Uses local assets: assets/sdp-logo.jpg and assets/world-art.jpg.
+
+Note: Startup effects are visual presentation only. They do not represent actual backend security or connection checks.
