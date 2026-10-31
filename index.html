@@ -724,18 +724,17 @@ if(window.L){mapSmall=makeMap("benueMap");mapLarge=makeMap("benueMapLarge")}
 
 /* =========================================================
    SDP-BESR GEOGRAPHICAL PLACES ENGINE
-   Retrieves named settlements and mapped facilities
-   in the currently visible map area.
+   Controlled requests, small search areas and marker limits.
    ========================================================= */
 
-const SDP_OVERPASS_SERVERS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter"
-];
+const SDP_OVERPASS_URL =
+  "https://overpass.private.coffee/api/interpreter";
 
 const sdpPlaceTimers = new WeakMap();
-const sdpPlaceRequests = new WeakMap();
+const sdpPlaceSequence = new WeakMap();
+const sdpPlaceLastQuery = new WeakMap();
+const sdpPlaceInFlight = new WeakMap();
+const sdpPlacePending = new WeakMap();
 
 function sdpEscapeHTML(value) {
   return String(value || "").replace(/[&<>"']/g, char => ({
@@ -750,21 +749,20 @@ function sdpEscapeHTML(value) {
 function sdpPlaceCategory(tags) {
   if (tags.place) return "Settlement";
 
-  if (tags.amenity) {
-    const types = {
-      school: "School",
-      hospital: "Hospital",
-      clinic: "Clinic",
-      police: "Police station",
-      marketplace: "Market",
-      bus_station: "Bus station"
-    };
+  const types = {
+    school: "School",
+    hospital: "Hospital",
+    clinic: "Clinic",
+    police: "Police station",
+    marketplace: "Market",
+    bus_station: "Bus station"
+  };
 
+  if (tags.amenity) {
     return types[tags.amenity] || "Public facility";
   }
 
-  if (tags.shop) return "Shop / Commercial";
-
+  if (tags.shop) return "Commercial facility";
   if (tags.tourism) return "Tourism / Landmark";
 
   return "Geographical place";
@@ -773,8 +771,12 @@ function sdpPlaceCategory(tags) {
 function sdpPlaceIcon(tags) {
   if (tags.place) return "🏘️";
   if (tags.amenity === "school") return "🏫";
-  if (tags.amenity === "hospital" ||
-      tags.amenity === "clinic") return "🏥";
+
+  if (
+    tags.amenity === "hospital" ||
+    tags.amenity === "clinic"
+  ) return "🏥";
+
   if (tags.amenity === "police") return "🚓";
   if (tags.amenity === "marketplace") return "🛒";
   if (tags.amenity === "bus_station") return "🚌";
@@ -784,68 +786,53 @@ function sdpPlaceIcon(tags) {
   return "📌";
 }
 
-async function sdpFetchPlaces(query, signal) {
-  let lastError = null;
+async function sdpFetchPlaces(query) {
+  const controller = new AbortController();
 
-  for (const endpoint of SDP_OVERPASS_SERVERS) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
-      const abortRequest = () => controller.abort();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 20000);
 
-      if (signal) {
-        if (signal.aborted) controller.abort();
-        else signal.addEventListener("abort", abortRequest, { once: true });
-      }
+  try {
+    const response = await fetch(SDP_OVERPASS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: "data=" + encodeURIComponent(query),
+      signal: controller.signal
+    });
 
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/x-www-form-urlencoded;charset=UTF-8"
-          },
-          body: "data=" + encodeURIComponent(query),
-          signal: controller.signal
-        });
-
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status);
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data.elements)) {
-          throw new Error("Invalid geographical data response");
-        }
-
-        return data.elements;
-      } finally {
-        clearTimeout(timeout);
-        if (signal) signal.removeEventListener("abort", abortRequest);
-      }
-    } catch (error) {
-      lastError = error;
-      if (signal && signal.aborted) throw error;
-      console.warn(
-        "SDP-BESR geographical server unavailable:",
-        endpoint,
-        error.message
-      );
+    if (!response.ok) {
+      throw new Error("Geographical server HTTP " + response.status);
     }
-  }
 
-  throw lastError || new Error("All geographical servers unavailable");
+    const data = await response.json();
+
+    if (data.remark) {
+      throw new Error(data.remark);
+    }
+
+    if (!Array.isArray(data.elements)) {
+      throw new Error("Invalid geographical data response");
+    }
+
+    return data.elements;
+
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function sdpLoadMapPlaces(map) {
   if (!map || !map._sdpPlaceLayer) return;
 
-  // Avoid excessive requests when zoomed out
-  if (map.getZoom() < 11) {
+  // Only load detailed features at close zoom levels
+  if (map.getZoom() < 12) {
     if (map === mapSmall) {
       updateMapStatus(
-        "Zoom in to level 11 or closer to load named settlements and facilities."
+        "Zoom in further to explore mapped settlements and facilities."
       );
     }
     return;
@@ -853,15 +840,48 @@ async function sdpLoadMapPlaces(map) {
 
   const bounds = map.getBounds();
 
-  const south = bounds.getSouth().toFixed(5);
-  const west = bounds.getWest().toFixed(5);
-  const north = bounds.getNorth().toFixed(5);
-  const east = bounds.getEast().toFixed(5);
+  const south = bounds.getSouth();
+  const west = bounds.getWest();
+  const north = bounds.getNorth();
+  const east = bounds.getEast();
 
-  const bbox = `${south},${west},${north},${east}`;
+  // Reject excessively large search areas
+  const area = (north - south) * (east - west);
+
+  if (area > 0.025) {
+    if (map === mapSmall) {
+      updateMapStatus(
+        "Zoom in closer to load geographical places for this area."
+      );
+    }
+    return;
+  }
+
+  // Keep only one Overpass request active per map; refresh once it finishes.
+  if (sdpPlaceInFlight.get(map)) {
+    sdpPlacePending.set(map, true);
+    return;
+  }
+
+  const bbox = [
+    south.toFixed(5),
+    west.toFixed(5),
+    north.toFixed(5),
+    east.toFixed(5)
+  ].join(",");
+
+  // Avoid requesting the same visible area repeatedly
+  const queryKey = `${map.getZoom()}:${bbox}`;
+
+  if (sdpPlaceLastQuery.get(map) === queryKey) return;
+
+  sdpPlaceLastQuery.set(map, queryKey);
+
+  const sequence = (sdpPlaceSequence.get(map) || 0) + 1;
+  sdpPlaceSequence.set(map, sequence);
 
   const query = `
-    [out:json][timeout:25];
+    [out:json][timeout:15][maxsize:67108864];
 
     (
       nwr["name"]["place"](${bbox});
@@ -876,34 +896,29 @@ async function sdpLoadMapPlaces(map) {
     out center tags;
   `;
 
-  // Cancel an earlier request for this map
-  const previous = sdpPlaceRequests.get(map);
-
-  if (previous) previous.abort();
-
-  const controller = new AbortController();
-  sdpPlaceRequests.set(map, controller);
-
   if (map === mapSmall) {
-    updateMapStatus("Loading mapped settlements and facilities…");
+    updateMapStatus("Retrieving geographical places…");
   }
 
-  try {
-    const elements = await sdpFetchPlaces(query, controller.signal);
+  sdpPlaceInFlight.set(map, true);
 
-    // Ignore a result if a newer request has started
-    if (sdpPlaceRequests.get(map) !== controller) return;
+  try {
+    const elements = await sdpFetchPlaces(query);
+
+    // Ignore results from an older map position
+    if (sdpPlaceSequence.get(map) !== sequence) return;
 
     map._sdpPlaceLayer.clearLayers();
 
     const seen = new Set();
     let displayed = 0;
 
-    elements.forEach(element => {
+    // Render a maximum of 180 features per request
+    for (const element of elements.slice(0, 180)) {
       const tags = element.tags || {};
       const name = tags.name;
 
-      if (!name) return;
+      if (!name) continue;
 
       const lat = element.lat ?? element.center?.lat;
       const lon = element.lon ?? element.center?.lon;
@@ -911,11 +926,12 @@ async function sdpLoadMapPlaces(map) {
       if (
         typeof lat !== "number" ||
         typeof lon !== "number"
-      ) return;
+      ) continue;
 
-      const key = `${lat.toFixed(5)}:${lon.toFixed(5)}:${name}`;
+      const key =
+        `${lat.toFixed(5)}:${lon.toFixed(5)}:${name}`;
 
-      if (seen.has(key)) return;
+      if (seen.has(key)) continue;
       seen.add(key);
 
       const category = sdpPlaceCategory(tags);
@@ -934,28 +950,39 @@ async function sdpLoadMapPlaces(map) {
         <br>
         ${sdpEscapeHTML(category)}
         <br>
-        <small>Geographical source: OpenStreetMap</small>
+        <small>Source: OpenStreetMap</small>
       `);
 
       marker.addTo(map._sdpPlaceLayer);
       displayed++;
-    });
+    }
 
     if (map === mapSmall) {
       updateMapStatus(
-        `Geographical places loaded: ${displayed} mapped features. Zoom or move the map to explore more.`
+        `Loaded ${displayed} mapped geographical features.`
       );
     }
 
   } catch (error) {
-    if (sdpPlaceRequests.get(map) !== controller) return;
+    // Do not repeatedly retry a failed public request
+    sdpPlaceLastQuery.delete(map);
 
-    console.error("SDP-BESR place loading failed:", error);
+    console.error(
+      "SDP-BESR geographical places:",
+      error.message
+    );
 
     if (map === mapSmall) {
       updateMapStatus(
-        "Place data temporarily unavailable. The street map and LGA boundaries remain available. Try again shortly."
+        "Geographical places are temporarily unavailable. The basemap and LGA boundaries remain operational."
       );
+    }
+  } finally {
+    sdpPlaceInFlight.delete(map);
+
+    if (sdpPlacePending.get(map)) {
+      sdpPlacePending.delete(map);
+      sdpSchedulePlaceLoad(map);
     }
   }
 }
@@ -965,27 +992,31 @@ function sdpSchedulePlaceLoad(map) {
 
   const existingTimer = sdpPlaceTimers.get(map);
 
-  if (existingTimer) clearTimeout(existingTimer);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
 
   const timer = setTimeout(() => {
     sdpLoadMapPlaces(map);
-  }, 1200);
+  }, 1500);
 
   sdpPlaceTimers.set(map, timer);
 }
 
 function sdpInitializePlaceEngine() {
-  [mapSmall, mapLarge].forEach(map => {
-    if (!map) return;
+  // Start with the main dashboard map only.
+  // This prevents simultaneous requests from both maps.
+  if (!mapSmall) return;
 
-    map.on("moveend", () => sdpSchedulePlaceLoad(map));
-    map.on("zoomend", () => sdpSchedulePlaceLoad(map));
+  mapSmall.on("moveend", () => {
+    sdpSchedulePlaceLoad(mapSmall);
+  });
 
-    sdpSchedulePlaceLoad(map);
+  mapSmall.on("zoomend", () => {
+    sdpSchedulePlaceLoad(mapSmall);
   });
 }
 
-// Start after the maps have been created
 sdpInitializePlaceEngine();
 function cleanName(v){return String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g,"and").replace(/[^a-z0-9]/g,"")}
 const LGA_ALIASES={
