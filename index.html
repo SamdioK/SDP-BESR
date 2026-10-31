@@ -579,7 +579,58 @@
   <section class="panel"><div class="panel-head"><div><div class="panel-title">OPERATIONAL SHORTCUTS</div><div class="panel-sub">Access key situation-room functions</div></div></div><div class="quick-grid"><button class="quick" data-go="incidents"><i>⚑</i><span><b>Incident management</b><small>Report and review incidents</small></span></button><button class="quick" data-go="polling"><i>▣</i><span><b>Polling-unit reports</b><small>Monitor field submissions</small></span></button><button class="quick" data-go="results"><i>▥</i><span><b>Results management</b><small>Submission and verification</small></span></button><button class="quick" data-go="personnel"><i>♙</i><span><b>Field personnel</b><small>Agents and assignments</small></span></button></div></section>
  </div>
 </section>
-<section class="view" id="view-geography"><div class="view-head"><div><div class="eyebrow">Administrative geography</div><h1>Geographical monitoring</h1><div class="subtitle">Benue State → Local Government Areas → Wards → Polling Units. Constituencies are managed as separate geographic relationships.</div></div><button class="secondary" id="refreshMap">Reload boundary data</button></div><div class="panel"><div class="notice">The map uses geoBoundaries / GRID3 Nigeria administrative boundaries (2022 representation), licensed CC BY 4.0. Validate boundaries against current INEC and relevant official records before operational decisions.</div><div class="map-shell" style="height:min(68vh,650px)"><div id="benueMapLarge" style="height:100%;width:100%"></div></div><div class="map-legend"><span><i class="legend-dot" style="background:#f08b3c"></i>Benue LGA coverage</span><span><i class="legend-dot" style="background:#8f4fbe"></i>Local government boundaries</span></div><div class="lga-grid" id="allLgas" style="margin-top:15px"></div><p class="panel-sub" style="margin-top:13px">Boundary data: geoBoundaries, based on GRID3 Nigeria State and Local Government Area boundaries, 2022. CC BY 4.0. <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener" style="color:#eab36c">Source and attribution</a>.</p></div></section>
+<section class="view" id="view-geography"><div class="view-head"><div><div class="eyebrow">Administrative geography</div><h1>Geographical monitoring</h1><div class="subtitle">Benue State → Local Government Areas → Wards → Polling Units. Constituencies are managed as separate geographic relationships.</div></div><button class="secondary" id="refreshMap">Reload boundary data</button></div><div class="panel"><div class="notice">The map uses geoBoundaries / GRID3 Nigeria administrative boundaries (2022 representation), licensed CC BY 4.0. Validate boundaries against current INEC and relevant official records before operational decisions.</div><div class="map-shell" style="height:min(68vh,650px)"><div id="benueMapLarge" style="height:100%;width:100%"></div></div><div class="map-legend"><span><i class="legend-dot" style="background:#f08b3c"></i>Benue LGA coverage</span><span><i class="legend-dot" style="background:#8f4fbe"></i>Local government boundaries</span></div><div class="lga-grid" id="allLgas" style="margin-top:15px"></div>
+<!-- SELECTED LGA OPERATIONS PANEL -->
+<section class="panel" id="lgaOperationsPanel" style="margin-top:18px;display:none">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="selectedLgaTitle">LGA OPERATIONS</div>
+      <div class="panel-sub">Geographical monitoring and field operations</div>
+    </div>
+    <button class="panel-action" id="closeLgaOperations">Close ×</button>
+  </div>
+
+  <div class="metrics-grid" style="margin-top:15px">
+    <article class="metric">
+      <div class="metric-head">Wards</div>
+      <div class="metric-value" id="lgaWardCount">Pending</div>
+      <div class="metric-note">Verified ward records</div>
+    </article>
+
+    <article class="metric">
+      <div class="metric-head">Polling units</div>
+      <div class="metric-value" id="lgaPuCount">Pending</div>
+      <div class="metric-note">Verified polling-unit records</div>
+    </article>
+
+    <article class="metric">
+      <div class="metric-head">Field agents</div>
+      <div class="metric-value" id="lgaAgentCount">Pending</div>
+      <div class="metric-note">Registered and assigned agents</div>
+    </article>
+
+    <article class="metric">
+      <div class="metric-head">Open incidents</div>
+      <div class="metric-value" id="lgaIncidentCount">Pending</div>
+      <div class="metric-note">Incidents awaiting resolution</div>
+    </article>
+  </div>
+
+  <div class="panel" style="margin-top:15px;padding:15px">
+    <div class="panel-title">OPERATIONAL STATUS</div>
+    <p class="panel-sub" id="lgaOperationalStatus">
+      No operational reports have been connected to this LGA yet.
+    </p>
+  </div>
+
+  <div class="panel" style="margin-top:15px;padding:15px">
+    <div class="panel-title">GEOGRAPHICAL INFORMATION</div>
+    <div class="panel-sub" id="lgaGeographicalInfo">
+      Select an LGA to view its boundary reference.
+    </div>
+  </div>
+</section>
+<p class="panel-sub" style="margin-top:13px">Boundary data: geoBoundaries, based on GRID3 Nigeria State and Local Government Area boundaries, 2022. CC BY 4.0. <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener" style="color:#eab36c">Source and attribution</a>.</p></div></section>
 <section class="view" id="view-elections"><div class="view-head"><div><div class="eyebrow">Configuration</div><h1>Election management</h1><div class="subtitle">Configure election cycles, contests, parties and candidates.</div></div><button class="primary" data-toast="Election configuration will be enabled after administrator setup.">＋ Configure election</button></div><div class="panel"><div class="empty">▤<b>Election workspace ready for configuration</b><p>Governorship, senatorial, federal constituency and State House of Assembly contests will be configured here. Dates must be checked against official INEC announcements.</p></div></div></section>
 <section class="view" id="view-personnel"><div class="view-head"><div><div class="eyebrow">Field operations</div><h1>Field personnel</h1><div class="subtitle">Manage coordinators, agents, assignments and attendance.</div></div><button class="primary" data-toast="Personnel registration will be enabled after secure authentication is configured.">＋ Register personnel</button></div><div class="panel"><div class="empty">♙<b>No personnel records connected</b><p>Agent profiles, roles, geographic jurisdictions and check-ins will appear after secure personnel management is implemented.</p></div></div></section>
 <section class="view" id="view-polling"><div class="view-head"><div><div class="eyebrow">Field reporting</div><h1>Polling-unit reports</h1><div class="subtitle">Monitor opening, accreditation, voting, closing and counting reports.</div></div><button class="primary" data-toast="Polling-unit reporting will be implemented in the field operations stage.">＋ New field report</button></div><div class="panel"><div class="empty">▣<b>Polling-unit reporting centre</b><p>Reports will be linked to verified polling-unit records, authorised agents, reporting windows and evidence.</p></div></div></section>
@@ -778,24 +829,115 @@ async function loadBoundaries(){
   console.error("SDP-BESR boundary loading:",err);
  }
 }
-function selectLga(name){
- const target=canonicalLga(name);
- const f=lgaFeatures.find(x=>canonicalLga(featureName(x))===target);
- if(!f){toast(`${name}: no matching polygon in the current Benue boundary dataset. The LGA name remains in the list; its geometry needs source verification.`);return}
- selectedLgaName=featureName(f);
- document.querySelectorAll("[data-lga]").forEach(b=>b.classList.toggle("selected",canonicalLga(b.dataset.lga)===target));
- const layerStyle={color:"#f4a04c",weight:3,fillColor:"#e88a3e",fillOpacity:.32};
- if(window._selectedSmall)mapSmall.removeLayer(window._selectedSmall);
- if(window._selectedLarge)mapLarge.removeLayer(window._selectedLarge);
- window._selectedSmall=L.geoJSON(f,{style:layerStyle}).addTo(mapSmall);
- window._selectedLarge=L.geoJSON(f,{style:layerStyle}).addTo(mapLarge);
- mapSmall.fitBounds(window._selectedSmall.getBounds(),{padding:[25,25],maxZoom:10});
- mapLarge.fitBounds(window._selectedLarge.getBounds(),{padding:[25,25],maxZoom:10});
- window._selectedSmall.bindPopup(`<strong>${selectedLgaName} LGA</strong><br>Benue State`).openPopup();
+function selectLga(name) {
+  const target = canonicalLga(name);
+
+  const f = lgaFeatures.find(
+    x => canonicalLga(featureName(x)) === target
+  );
+
+  if (!f) {
+    toast(
+      `${name}: no matching geographical boundary was found.`
+    );
+    return;
+  }
+
+  selectedLgaName = featureName(f);
+
+  document.querySelectorAll("[data-lga]").forEach(button => {
+    button.classList.toggle(
+      "selected",
+      canonicalLga(button.dataset.lga) === target
+    );
+  });
+
+  const layerStyle = {
+    color: "#f4a04c",
+    weight: 3,
+    fillColor: "#e88a3e",
+    fillOpacity: .32
+  };
+
+  if (window._selectedSmall) {
+    mapSmall.removeLayer(window._selectedSmall);
+  }
+
+  if (window._selectedLarge) {
+    mapLarge.removeLayer(window._selectedLarge);
+  }
+
+  window._selectedSmall = L.geoJSON(f, {
+    style: layerStyle
+  }).addTo(mapSmall);
+
+  window._selectedLarge = L.geoJSON(f, {
+    style: layerStyle
+  }).addTo(mapLarge);
+
+  mapSmall.fitBounds(
+    window._selectedSmall.getBounds(),
+    { padding: [25, 25], maxZoom: 10 }
+  );
+
+  mapLarge.fitBounds(
+    window._selectedLarge.getBounds(),
+    { padding: [25, 25], maxZoom: 10 }
+  );
+
+  window._selectedSmall.bindPopup(
+    `<strong>${selectedLgaName} LGA</strong><br>Benue State`
+  ).openPopup();
+
+  /* Display selected LGA operational information */
+  const panel = document.getElementById(
+    "lgaOperationsPanel"
+  );
+
+  if (panel) {
+    panel.style.display = "block";
+
+    document.getElementById("selectedLgaTitle").textContent =
+      selectedLgaName.toUpperCase() + " LGA OPERATIONS";
+
+    document.getElementById("lgaWardCount").textContent =
+      "Pending";
+
+    document.getElementById("lgaPuCount").textContent =
+      "Pending";
+
+    document.getElementById("lgaAgentCount").textContent =
+      "Pending";
+
+    document.getElementById("lgaIncidentCount").textContent =
+      "Pending";
+
+    document.getElementById("lgaOperationalStatus").textContent =
+      "No operational reports have been connected to this LGA yet.";
+
+    const properties = f.properties || {};
+
+    document.getElementById("lgaGeographicalInfo").textContent =
+      "Local Government Area: " + selectedLgaName +
+      " | State: Benue State | Boundary reference: " +
+      (properties.ADM2_PCODE || "Not available");
+
+    panel.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest"
+    });
+  }
 }
 document.getElementById("fitMap").onclick=()=>{if(lgaLayerSmall)mapSmall.fitBounds(lgaLayerSmall.getBounds(),{padding:[18,18],maxZoom:8})};
 document.getElementById("toggleLgas").onclick=()=>{if(!lgaLayerSmall)return;if(mapSmall.hasLayer(lgaLayerSmall)){mapSmall.removeLayer(lgaLayerSmall);toast("LGA boundaries hidden")}else{lgaLayerSmall.addTo(mapSmall);toast("LGA boundaries visible")}};
 document.getElementById("refreshMap").onclick=()=>loadBoundaries();
+
+/* Close selected LGA information panel */
+document.getElementById("closeLgaOperations")
+  ?.addEventListener("click", function() {
+    document.getElementById("lgaOperationsPanel")
+      .style.display = "none";
+  });
 
 loadBoundaries();
 
