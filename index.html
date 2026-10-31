@@ -671,56 +671,322 @@ function makeMap(id) {
     scrollWheelZoom: false
   }).setView([7.3, 8.7], 7);
 
-  // 1. Detailed street and settlement basemap
   const street = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution:
-        'Tiles &copy; Esri | Sources: Esri, HERE, Garmin, USGS, Intermap, and GIS User Community'
+      attribution: 'Tiles &copy; Esri | Sources: Esri, HERE, Garmin, USGS, Intermap, and GIS User Community'
     }
   );
 
-  // 2. Satellite imagery
   const satellite = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution:
-        'Imagery &copy; Esri and its imagery contributors'
+      attribution: 'Imagery &copy; Esri and its imagery contributors'
     }
   );
 
-  // 3. Topographic / terrain map
   const terrain = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom: 19,
-      attribution:
-        'Topographic map &copy; Esri and its data contributors'
+      attribution: 'Topographic map &copy; Esri and its data contributors'
     }
   );
 
-  // Default basemap
+  // Interactive geographical places
+  const placeLayer = L.layerGroup().addTo(m);
+
   street.addTo(m);
 
-  // Basemap selection control
   L.control.layers(
     {
       "Street / Places": street,
       "Satellite": satellite,
       "Terrain": terrain
     },
-    null,
+    {
+      "Mapped geographical places": placeLayer
+    },
     {
       position: "topright",
       collapsed: true
     }
   ).addTo(m);
 
+  // Make the place layer accessible to the geographic data engine
+  m._sdpPlaceLayer = placeLayer;
+
   return m;
 }
 if(window.L){mapSmall=makeMap("benueMap");mapLarge=makeMap("benueMapLarge")}
+
+/* =========================================================
+   SDP-BESR GEOGRAPHICAL PLACES ENGINE
+   Retrieves named settlements and mapped facilities
+   in the currently visible map area.
+   ========================================================= */
+
+const SDP_OVERPASS_SERVERS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter"
+];
+
+const sdpPlaceTimers = new WeakMap();
+const sdpPlaceRequests = new WeakMap();
+
+function sdpEscapeHTML(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function sdpPlaceCategory(tags) {
+  if (tags.place) return "Settlement";
+
+  if (tags.amenity) {
+    const types = {
+      school: "School",
+      hospital: "Hospital",
+      clinic: "Clinic",
+      police: "Police station",
+      marketplace: "Market",
+      bus_station: "Bus station"
+    };
+
+    return types[tags.amenity] || "Public facility";
+  }
+
+  if (tags.shop) return "Shop / Commercial";
+
+  if (tags.tourism) return "Tourism / Landmark";
+
+  return "Geographical place";
+}
+
+function sdpPlaceIcon(tags) {
+  if (tags.place) return "🏘️";
+  if (tags.amenity === "school") return "🏫";
+  if (tags.amenity === "hospital" ||
+      tags.amenity === "clinic") return "🏥";
+  if (tags.amenity === "police") return "🚓";
+  if (tags.amenity === "marketplace") return "🛒";
+  if (tags.amenity === "bus_station") return "🚌";
+  if (tags.shop) return "🏪";
+  if (tags.tourism) return "📍";
+
+  return "📌";
+}
+
+async function sdpFetchPlaces(query, signal) {
+  let lastError = null;
+
+  for (const endpoint of SDP_OVERPASS_SERVERS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+      const abortRequest = () => controller.abort();
+
+      if (signal) {
+        if (signal.aborted) controller.abort();
+        else signal.addEventListener("abort", abortRequest, { once: true });
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/x-www-form-urlencoded;charset=UTF-8"
+          },
+          body: "data=" + encodeURIComponent(query),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data.elements)) {
+          throw new Error("Invalid geographical data response");
+        }
+
+        return data.elements;
+      } finally {
+        clearTimeout(timeout);
+        if (signal) signal.removeEventListener("abort", abortRequest);
+      }
+    } catch (error) {
+      lastError = error;
+      if (signal && signal.aborted) throw error;
+      console.warn(
+        "SDP-BESR geographical server unavailable:",
+        endpoint,
+        error.message
+      );
+    }
+  }
+
+  throw lastError || new Error("All geographical servers unavailable");
+}
+
+async function sdpLoadMapPlaces(map) {
+  if (!map || !map._sdpPlaceLayer) return;
+
+  // Avoid excessive requests when zoomed out
+  if (map.getZoom() < 11) {
+    if (map === mapSmall) {
+      updateMapStatus(
+        "Zoom in to level 11 or closer to load named settlements and facilities."
+      );
+    }
+    return;
+  }
+
+  const bounds = map.getBounds();
+
+  const south = bounds.getSouth().toFixed(5);
+  const west = bounds.getWest().toFixed(5);
+  const north = bounds.getNorth().toFixed(5);
+  const east = bounds.getEast().toFixed(5);
+
+  const bbox = `${south},${west},${north},${east}`;
+
+  const query = `
+    [out:json][timeout:25];
+
+    (
+      nwr["name"]["place"](${bbox});
+
+      nwr["name"]["amenity"~"school|hospital|clinic|police|marketplace|bus_station"](${bbox});
+
+      nwr["name"]["shop"](${bbox});
+
+      nwr["name"]["tourism"](${bbox});
+    );
+
+    out center tags;
+  `;
+
+  // Cancel an earlier request for this map
+  const previous = sdpPlaceRequests.get(map);
+
+  if (previous) previous.abort();
+
+  const controller = new AbortController();
+  sdpPlaceRequests.set(map, controller);
+
+  if (map === mapSmall) {
+    updateMapStatus("Loading mapped settlements and facilities…");
+  }
+
+  try {
+    const elements = await sdpFetchPlaces(query, controller.signal);
+
+    // Ignore a result if a newer request has started
+    if (sdpPlaceRequests.get(map) !== controller) return;
+
+    map._sdpPlaceLayer.clearLayers();
+
+    const seen = new Set();
+    let displayed = 0;
+
+    elements.forEach(element => {
+      const tags = element.tags || {};
+      const name = tags.name;
+
+      if (!name) return;
+
+      const lat = element.lat ?? element.center?.lat;
+      const lon = element.lon ?? element.center?.lon;
+
+      if (
+        typeof lat !== "number" ||
+        typeof lon !== "number"
+      ) return;
+
+      const key = `${lat.toFixed(5)}:${lon.toFixed(5)}:${name}`;
+
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const category = sdpPlaceCategory(tags);
+      const icon = sdpPlaceIcon(tags);
+
+      const marker = L.circleMarker([lat, lon], {
+        radius: tags.place ? 6 : 5,
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: tags.place ? "#168b75" : "#e58b35",
+        fillOpacity: 0.95
+      });
+
+      marker.bindPopup(`
+        <strong>${icon} ${sdpEscapeHTML(name)}</strong>
+        <br>
+        ${sdpEscapeHTML(category)}
+        <br>
+        <small>Geographical source: OpenStreetMap</small>
+      `);
+
+      marker.addTo(map._sdpPlaceLayer);
+      displayed++;
+    });
+
+    if (map === mapSmall) {
+      updateMapStatus(
+        `Geographical places loaded: ${displayed} mapped features. Zoom or move the map to explore more.`
+      );
+    }
+
+  } catch (error) {
+    if (sdpPlaceRequests.get(map) !== controller) return;
+
+    console.error("SDP-BESR place loading failed:", error);
+
+    if (map === mapSmall) {
+      updateMapStatus(
+        "Place data temporarily unavailable. The street map and LGA boundaries remain available. Try again shortly."
+      );
+    }
+  }
+}
+
+function sdpSchedulePlaceLoad(map) {
+  if (!map) return;
+
+  const existingTimer = sdpPlaceTimers.get(map);
+
+  if (existingTimer) clearTimeout(existingTimer);
+
+  const timer = setTimeout(() => {
+    sdpLoadMapPlaces(map);
+  }, 1200);
+
+  sdpPlaceTimers.set(map, timer);
+}
+
+function sdpInitializePlaceEngine() {
+  [mapSmall, mapLarge].forEach(map => {
+    if (!map) return;
+
+    map.on("moveend", () => sdpSchedulePlaceLoad(map));
+    map.on("zoomend", () => sdpSchedulePlaceLoad(map));
+
+    sdpSchedulePlaceLoad(map);
+  });
+}
+
+// Start after the maps have been created
+sdpInitializePlaceEngine();
 function cleanName(v){return String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g,"and").replace(/[^a-z0-9]/g,"")}
 const LGA_ALIASES={
  "gwereast":["gwereast","gwer-east"],"gwerwest":["gwerwest","gwer-west"],
