@@ -46,43 +46,336 @@
 @media(max-width:1100px){.metrics{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.side-panels{grid-template-columns:1fr 1fr}.map-shell{height:340px}}
 @media(max-width:900px){.live-intel-grid{grid-template-columns:1fr 1fr}.flip-card{grid-column:1/-1}.countdown-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.live-intel-grid{grid-template-columns:1fr}.flip-card{grid-column:auto}.countdown-grid{grid-template-columns:1fr 1fr}.live-clock{font-size:18px}.election-focus{grid-template-columns:1fr}.election-context{align-items:flex-start;flex-direction:column}.election-tab{flex:1 1 calc(50% - 7px);line-height:1.35}.sidebar{transform:translateX(-105%);box-shadow:15px 0 45px #0008}.sidebar.open{transform:translateX(0)}.main{margin:0}.topbar{height:59px;padding:0 12px}.menu-btn{display:block}.content{padding:18px 12px 30px}.welcome{align-items:flex-start;flex-direction:column}.welcome h1{font-size:21px}.date{display:none}.top-actions{gap:6px}.live-pill{font-size:0;padding:8px}.live-pill:before{margin:0}.metrics{gap:8px}.metric{padding:11px;min-height:98px}.metric-value{font-size:22px}.side-panels{grid-template-columns:1fr}.bottom-grid{grid-template-columns:1fr}.lga-grid{grid-template-columns:repeat(2,1fr)}.map-shell{height:390px}.view-head{align-items:flex-start;flex-direction:column}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
 
-/* SDP-BESR global digital-world startup: static official logo, animated global environment, silent */
-#sdpBoot{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;background:#020b12 url("assets/world-art.jpg") center/cover no-repeat;color:#fff;opacity:1;transition:opacity 1.1s ease}
-#sdpBoot.is-leaving{opacity:0;pointer-events:none}
-#sdpBoot:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#03111a22 0%,#03111a20 48%,#020a12a8 100%);z-index:0}
-#sdpBoot:after{content:"";position:absolute;inset:-35%;background:conic-gradient(from 0deg,transparent 0 16%,#ed873555 20%,transparent 26% 43%,#20d5ad55 49%,transparent 56% 73%,#ed873544 80%,transparent 87%);filter:blur(35px);animation:worldAurora 18s linear infinite;mix-blend-mode:screen;pointer-events:none}
-#sdpBoot .boot-grid{position:absolute;inset:0;z-index:1;opacity:.18;background-image:linear-gradient(#79d9d022 1px,transparent 1px),linear-gradient(90deg,#79d9d022 1px,transparent 1px);background-size:54px 54px;mask-image:radial-gradient(ellipse at center,#000 12%,transparent 78%);animation:gridDrift 24s linear infinite}
-#sdpBoot .boot-orbit{position:absolute;z-index:1;width:min(94vw,920px);aspect-ratio:1.8;border:1px solid #24d8b866;border-radius:50%;box-shadow:0 0 45px #20cda944,inset 0 0 55px #20cda922;animation:ringPulse 5s ease-in-out infinite;transform:rotateX(64deg)}
-#sdpBoot .boot-orbit:before,#sdpBoot .boot-orbit:after{content:"";position:absolute;inset:7%;border:2px solid transparent;border-top-color:#ed8735;border-right-color:#22d2ad;border-radius:50%;animation:orbit 12s linear infinite}
-#sdpBoot .boot-orbit:after{inset:17%;border-style:dashed;border-color:#ffffff88;animation-direction:reverse;animation-duration:19s}
-#sdpBoot .boot-horizon{position:absolute;z-index:1;left:-10%;right:-10%;bottom:12%;height:2px;background:linear-gradient(90deg,transparent,#ed8735,#fff,#20c99a,transparent);box-shadow:0 0 28px #ed8735aa;transform:perspective(250px) rotateX(48deg)}
-#sdpBoot .boot-scene{position:relative;z-index:3;width:min(94vw,900px);min-height:min(88vh,720px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 18px}
-#sdpBoot .boot-logo-frame{width:min(78vw,570px);padding:0;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 0 0 2px #ffffffaa,0 0 35px #22d5bbaa,0 0 90px #ed873577;animation:logoArrive 1.6s cubic-bezier(.18,.75,.2,1) both,logoGlow 4s ease-in-out 1.6s infinite}
-#sdpBoot .boot-logo{display:block;width:100%;height:auto;object-fit:contain}
-#sdpBoot .boot-system-name{margin-top:25px;font-size:clamp(15px,3vw,25px);font-weight:850;letter-spacing:.16em;text-transform:uppercase;color:#fff;text-shadow:0 2px 18px #000;animation:textArrive 1.4s .65s both}
-#sdpBoot .boot-system-sub{margin-top:9px;font-size:clamp(9px,1.7vw,13px);letter-spacing:.22em;text-transform:uppercase;color:#d5eee7;text-shadow:0 2px 12px #000;animation:textArrive 1.4s .9s both}
-#sdpBoot .boot-lightline{height:3px;width:min(62vw,490px);margin-top:22px;background:linear-gradient(90deg,transparent,#ed8735,#fff,#25c99a,transparent);box-shadow:0 0 20px #25c99a;animation:lineGlow 2.8s ease-in-out infinite}
-@keyframes worldAurora{to{transform:rotate(360deg)}}
-@keyframes logoArrive{from{opacity:0;transform:translateY(30px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes logoGlow{0%,100%{box-shadow:0 0 0 2px #ffffffaa,0 0 30px #22d5bbaa,0 0 70px #ed873544}50%{box-shadow:0 0 0 2px #fff,0 0 48px #22d5bb,0 0 100px #ed8735aa}}
-@keyframes textArrive{from{opacity:0;transform:translateY(16px);letter-spacing:.28em}to{opacity:1;transform:translateY(0);letter-spacing:.16em}}
-@keyframes ringPulse{0%,100%{opacity:.5;scale:.96}50%{opacity:1;scale:1.04}}
-@keyframes orbit{to{transform:rotate(360deg)}}
-@keyframes gridDrift{to{background-position:54px 54px}}
-@keyframes lineGlow{0%,100%{opacity:.5;transform:scaleX(.88)}50%{opacity:1;transform:scaleX(1)}}
-@media(max-width:520px){#sdpBoot .boot-scene{min-height:82vh;padding:15px 10px}#sdpBoot .boot-logo-frame{width:min(88vw,480px);border-radius:12px}#sdpBoot .boot-system-name{margin-top:20px;letter-spacing:.1em}#sdpBoot .boot-system-sub{letter-spacing:.12em;line-height:1.7}}
-@media(prefers-reduced-motion:reduce){#sdpBoot *,#sdpBoot *:before,#sdpBoot *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+/* =========================================
+   SDP-BESR GEOGRAPHIC STARTUP ANIMATION
+   ========================================= */
+
+#sdpBoot {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(2, 20, 25, .92), rgba(4, 37, 39, .88)),
+    url("assets/world-art.jpg") center / cover no-repeat;
+  color: #fff;
+  isolation: isolate;
+  animation: bootBackground 15s ease forwards;
+}
+
+#sdpBoot.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1s ease, visibility 1s ease;
+}
+
+.boot-grid {
+  position: absolute;
+  inset: -50%;
+  opacity: .18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+  transform: perspective(500px) rotateX(58deg);
+  animation: gridDrift 15s linear infinite;
+}
+
+.boot-orbit {
+  position: absolute;
+  width: min(85vw, 620px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  box-shadow:
+    0 0 45px rgba(20,180,160,.12),
+    inset 0 0 45px rgba(20,180,160,.08);
+  animation: orbitPulse 5s ease-in-out infinite;
+}
+
+.boot-orbit::before,
+.boot-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+}
+
+.boot-orbit::after {
+  inset: 25%;
+  border-color: rgba(255,145,40,.22);
+}
+
+.boot-horizon {
+  position: absolute;
+  width: 120%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.55),
+    #f59b32,
+    transparent
+  );
+  box-shadow: 0 0 18px rgba(245,155,50,.6);
+  animation: horizonGlow 3s ease-in-out infinite;
+}
+
+.boot-scene {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.boot-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.75);
+  font-size: clamp(25px, 6vw, 54px);
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-shadow: 0 5px 25px rgba(0,0,0,.7);
+  animation: geographicReveal 3s ease both;
+}
+
+.boot-stage small {
+  display: block;
+  margin-top: 13px;
+  color: #f4a340;
+  font-size: 10px;
+  letter-spacing: .24em;
+  font-weight: 600;
+}
+
+.boot-stage.globe {
+  animation-delay: 0s;
+}
+
+.boot-stage.africa {
+  animation-duration: 2s;
+  animation-delay: 3s;
+}
+
+.boot-stage.nigeria {
+  animation-duration: 3s;
+  animation-delay: 5s;
+}
+
+.boot-stage.benue {
+  animation-duration: 2s;
+  animation-delay: 8s;
+}
+
+.boot-logo-frame {
+  position: relative;
+  width: clamp(105px, 19vw, 155px);
+  aspect-ratio: 1;
+  padding: 7px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff, #f49a32, #168b53);
+  box-shadow: 0 0 35px rgba(255,255,255,.2);
+  opacity: 0;
+  transform: scale(.5);
+  animation: logoReveal 1.2s ease 10s forwards;
+}
+
+.boot-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.boot-title {
+  opacity: 0;
+  transform: translateY(22px);
+  animation: titleReveal 1s ease 10.5s forwards;
+}
+
+.boot-title-main {
+  font-size: clamp(34px, 8vw, 68px);
+  font-weight: 950;
+  letter-spacing: .08em;
+  line-height: 1.1;
+  text-shadow: 0 5px 25px rgba(0,0,0,.7);
+}
+
+.boot-title-main .s {
+  color: #21b56a;
+}
+
+.boot-title-main .d {
+  color: #f49a32;
+}
+
+.boot-title-main .p {
+  color: #21b56a;
+}
+
+.boot-title-sub {
+  margin-top: 13px;
+  color: #c99bff;
+  font-size: clamp(11px, 2.6vw, 18px);
+  font-weight: 800;
+  letter-spacing: .22em;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  margin-left: auto;
+  margin-right: auto;
+  animation: subtitleTyping 2.4s steps(29, end) 11.2s forwards;
+}
+
+.boot-lightline {
+  width: min(270px, 65vw);
+  height: 3px;
+  margin: 22px auto 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #168b53, #f49a32, #168b53);
+  box-shadow: 0 0 15px rgba(244,154,50,.55);
+  transform: scaleX(0);
+  transform-origin: center;
+  animation: lineReveal 1s ease 11.5s forwards;
+}
+
+@keyframes geographicReveal {
+  0%, 15% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.75);
+  }
+  25%, 70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+@keyframes logoReveal {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes titleReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtitleTyping {
+  to { width: 100%; }
+}
+
+@keyframes lineReveal {
+  to { transform: scaleX(1); }
+}
+
+@keyframes orbitPulse {
+  0%, 100% { transform: scale(.94) rotate(0deg); }
+  50% { transform: scale(1.04) rotate(8deg); }
+}
+
+@keyframes gridDrift {
+  from { background-position: 0 0; }
+  to { background-position: 48px 48px; }
+}
+
+@keyframes horizonGlow {
+  0%, 100% { opacity: .25; }
+  50% { opacity: .9; }
+}
+
+@keyframes bootBackground {
+  0%, 100% { background-position: center; }
+}
+
+@media (max-width: 600px) {
+  .boot-scene { padding: 18px; }
+  .boot-title-sub { letter-spacing: .12em; }
+  .boot-orbit { width: 92vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sdpBoot, #sdpBoot * {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
 </style>
 </head>
 <body>
-<div id="sdpBoot" aria-label="SDP-BESR global digital-world startup" role="status">
- <div class="boot-grid" aria-hidden="true"></div><div class="boot-orbit" aria-hidden="true"></div><div class="boot-horizon" aria-hidden="true"></div>
- <div class="boot-scene">
-  <div class="boot-logo-frame"><img class="boot-logo" src="assets/sdp-logo.jpg" alt="Social Democratic Party — Progress"></div>
-  <div class="boot-system-name">SDP-BESR Situation Room</div>
-  <div class="boot-system-sub">Benue State · Election Monitoring · Results Management</div>
-  <div class="boot-lightline" aria-hidden="true"></div>
- </div>
+<div id="sdpBoot" role="status" aria-label="SDP-BESR opening animation">
+
+  <div class="boot-grid" aria-hidden="true"></div>
+  <div class="boot-orbit" aria-hidden="true"></div>
+  <div class="boot-horizon" aria-hidden="true"></div>
+
+  <div class="boot-scene">
+
+    <div class="boot-stage globe">
+      THE WORLD
+      <small>GLOBAL DIGITAL NETWORK</small>
+    </div>
+
+    <div class="boot-stage africa">
+      AFRICA
+      <small>THE CONTINENT COMES INTO FOCUS</small>
+    </div>
+
+    <div class="boot-stage nigeria">
+      NIGERIA
+      <small>ZOOMING INTO THE FEDERAL REPUBLIC</small>
+    </div>
+
+    <div class="boot-stage benue">
+      BENUE STATE
+      <small>THE CENTRE OF THIS ELECTION SITUATION ROOM</small>
+    </div>
+
+    <div class="boot-logo-frame">
+      <img
+        class="boot-logo"
+        src="assets/sdp-logo.jpg"
+        alt="Social Democratic Party logo"
+      >
+    </div>
+
+    <div class="boot-title">
+
+      <div class="boot-title-main">
+        <span class="s">S</span><span class="d">D</span><span class="p">P</span>
+        BENUE
+      </div>
+
+      <div class="boot-title-sub">
+        ELECTION SITUATION ROOM
+      </div>
+
+      <div class="boot-lightline"></div>
+
+    </div>
+
+  </div>
 </div>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -300,15 +593,44 @@ document.querySelectorAll("[data-election]").forEach(btn=>btn.addEventListener("
  else if(key==="senate")toast("Senatorial dashboard selected — verified district data will populate this workspace.");
  else toast("Federal House dashboard selected — verified constituency data will populate this workspace.");
 }));
-// Silent 15-second global digital-world startup; official SDP logo remains static.
-(function runSdpGlobalBoot(){
- const boot=document.getElementById('sdpBoot');
- if(!boot)return;
- const duration=15000;
- const started=performance.now();
- function finish(){boot.classList.add('is-leaving');window.setTimeout(()=>boot.remove(),1100);}
- function tick(now){if(now-started>=duration){finish();return;}requestAnimationFrame(tick);}
- requestAnimationFrame(tick);
+/* SDP-BESR geographic startup controller */
+(function runSdpGeographicBoot() {
+
+  const boot = document.getElementById("sdpBoot");
+
+  if (!boot) return;
+
+  const reducedMotion =
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reducedMotion) {
+    boot.remove();
+    return;
+  }
+
+  // Play the introduction once per browser tab session.
+  try {
+    if (sessionStorage.getItem("sdpBesrIntroSeen") === "1") {
+      boot.remove();
+      return;
+    }
+
+    sessionStorage.setItem("sdpBesrIntroSeen", "1");
+  } catch (error) {
+    // Continue normally if browser storage is unavailable.
+  }
+
+  window.setTimeout(function () {
+
+    boot.classList.add("is-leaving");
+
+    window.setTimeout(function () {
+      boot.remove();
+    }, 1100);
+
+  }, 15000);
+
 })();
 </script>
 </body></html>
