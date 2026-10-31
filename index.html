@@ -125,6 +125,51 @@
   animation: horizonGlow 3s ease-in-out infinite;
 }
 
+/* REAL BENUE STATE GEOGRAPHIC OUTLINE */
+.boot-benue-map {
+  position: absolute;
+  z-index: 1;
+  width: min(65vw, 430px);
+  height: min(48vh, 350px);
+  opacity: 0;
+  overflow: visible;
+  transform: scale(.72);
+  filter: drop-shadow(0 0 18px rgba(244,154,50,.65));
+  animation: benueMapReveal 3.2s ease 7.6s forwards;
+  pointer-events: none;
+}
+
+.boot-benue-map path {
+  fill: rgba(20, 150, 92, .28);
+  stroke: #f49a32;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes benueMapReveal {
+  0% {
+    opacity: 0;
+    transform: scale(.72);
+  }
+  25%, 75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@media(max-width:600px) {
+  .boot-benue-map {
+    width: 78vw;
+    height: 36vh;
+  }
+}
+
 .boot-scene {
   position: relative;
   z-index: 2;
@@ -329,6 +374,15 @@
   <div class="boot-grid" aria-hidden="true"></div>
   <div class="boot-orbit" aria-hidden="true"></div>
   <div class="boot-horizon" aria-hidden="true"></div>
+  <svg
+    id="bootBenueMap"
+    class="boot-benue-map"
+    viewBox="0 0 600 460"
+    role="img"
+    aria-label="Benue State administrative boundary"
+  >
+    <g id="bootBenueGeometry"></g>
+  </svg>
 
   <div class="boot-scene">
 
@@ -531,6 +585,116 @@ async function loadBoundaries(){
   const data=await response.json();
   if(data.error)throw new Error(data.error.message||"Boundary service error");
   lgaFeatures=(data.features||[]).filter(f=>cleanName((f.properties||{}).ADM1_EN)==="benue"&&featureName(f));
+  /* Render real Benue boundary geometry in the opening animation */
+  (function drawBenueOpeningMap(features) {
+
+    const target = document.getElementById("bootBenueGeometry");
+
+    if (!target || !features || !features.length) return;
+
+    const points = [];
+
+    function collectCoordinates(coords) {
+
+      if (!Array.isArray(coords)) return;
+
+      if (
+        typeof coords[0] === "number" &&
+        typeof coords[1] === "number"
+      ) {
+        points.push(coords);
+        return;
+      }
+
+      coords.forEach(collectCoordinates);
+    }
+
+    features.forEach(function(feature) {
+      if (feature.geometry) {
+        collectCoordinates(feature.geometry.coordinates);
+      }
+    });
+
+    if (!points.length) return;
+
+    const xs = points.map(p => p[0]);
+    const ys = points.map(p => p[1]);
+
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    const padding = 30;
+    const availableWidth = 600 - padding * 2;
+    const availableHeight = 460 - padding * 2;
+
+    const scale = Math.min(
+      availableWidth / (maxX - minX),
+      availableHeight / (maxY - minY)
+    );
+
+    const offsetX =
+      (600 - (maxX - minX) * scale) / 2;
+
+    const offsetY =
+      (460 - (maxY - minY) * scale) / 2;
+
+    function makeRingPath(ring) {
+
+      return ring.map(function(point, index) {
+
+        const x = offsetX + (point[0] - minX) * scale;
+
+        const y = 460 -
+          (offsetY + (point[1] - minY) * scale);
+
+        return (index === 0 ? "M" : "L") +
+          x.toFixed(2) + " " +
+          y.toFixed(2);
+
+      }).join(" ") + " Z";
+    }
+
+    function makeGeometryPath(geometry) {
+
+      if (!geometry) return "";
+
+      let polygons = [];
+
+      if (geometry.type === "Polygon") {
+        polygons = [geometry.coordinates];
+      }
+
+      if (geometry.type === "MultiPolygon") {
+        polygons = geometry.coordinates;
+      }
+
+      return polygons.map(function(polygon) {
+
+        return polygon.map(makeRingPath).join(" ");
+
+      }).join(" ");
+    }
+
+    const namespace = "http://www.w3.org/2000/svg";
+
+    features.forEach(function(feature) {
+
+      const path = document.createElementNS(namespace, "path");
+
+      path.setAttribute(
+        "d",
+        makeGeometryPath(feature.geometry)
+      );
+
+      path.setAttribute("fill-rule", "evenodd");
+
+      target.appendChild(path);
+
+    });
+
+  })(lgaFeatures);
   if(!lgaFeatures.length)throw new Error("No Benue LGA polygons were returned. Please check the internet connection or source availability.");
   setLgaChoices(lgaFeatures.map(featureName));
   const collection={type:"FeatureCollection",features:lgaFeatures};
