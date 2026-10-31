@@ -665,7 +665,61 @@ const modal=document.getElementById("incidentModal");document.getElementById("op
 let mapSmall=null,mapLarge=null,lgaLayerSmall=null,lgaLayerLarge=null,lgaFeatures=[],selectedLgaName=null;
 const arcgisLgaQuery="https://services3.arcgis.com/7J7WB6yJX0pYke9q/ArcGIS/rest/services/NCO_Security_Database_WFL1/FeatureServer/1/query";
 const fallbackLgas=["Ado","Agatu","Apa","Buruku","Gboko","Guma","Gwer East","Gwer West","Katsina-Ala","Konshisha","Kwande","Logo","Makurdi","Obi","Ogbadibo","Ohimini","Oju","Okpokwu","Otukpo","Tarka","Ukum","Ushongo","Vandeikya"];
-function makeMap(id){const m=L.map(id,{zoomControl:true,scrollWheelZoom:false}).setView([7.3,8.7],7);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(m);return m}
+function makeMap(id) {
+  const m = L.map(id, {
+    zoomControl: true,
+    scrollWheelZoom: false
+  }).setView([7.3, 8.7], 7);
+
+  // 1. Detailed street and settlement basemap
+  const street = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution:
+        'Tiles &copy; Esri | Sources: Esri, HERE, Garmin, USGS, Intermap, and GIS User Community'
+    }
+  );
+
+  // 2. Satellite imagery
+  const satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution:
+        'Imagery &copy; Esri and its imagery contributors'
+    }
+  );
+
+  // 3. Topographic / terrain map
+  const terrain = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution:
+        'Topographic map &copy; Esri and its data contributors'
+    }
+  );
+
+  // Default basemap
+  street.addTo(m);
+
+  // Basemap selection control
+  L.control.layers(
+    {
+      "Street / Places": street,
+      "Satellite": satellite,
+      "Terrain": terrain
+    },
+    null,
+    {
+      position: "topright",
+      collapsed: true
+    }
+  ).addTo(m);
+
+  return m;
+}
 if(window.L){mapSmall=makeMap("benueMap");mapLarge=makeMap("benueMapLarge")}
 function cleanName(v){return String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g,"and").replace(/[^a-z0-9]/g,"")}
 const LGA_ALIASES={
@@ -684,7 +738,13 @@ function canonicalLga(name){
  return key;
 }
 function featureName(f){const p=f.properties||{};return String(p.ADM2_EN||p.ADM2_REF||p.shapeName||p.NAME_2||p.name||"").trim()}
-function mapStyle(){return{color:"#9250bd",weight:1.55,opacity:.98,fillColor:"#7840a3",fillOpacity:.16}}
+const mapStyle = {
+  color: "#8f4fbe",
+  weight: 1.5,
+  opacity: 0.9,
+  fillColor: "#8f4fbe",
+  fillOpacity: 0.025
+};
 function lgaDisplayMarkup(names){return names.map(n=>`<button class="lga-chip" data-lga="${n}">${n}<small>⌖</small></button>`).join("")}
 function setLgaChoices(names){
  const unique=[...new Map(names.map(n=>[canonicalLga(n),n])).values()].sort((a,b)=>a.localeCompare(b));
@@ -853,10 +913,11 @@ function selectLga(name) {
   });
 
   const layerStyle = {
-    color: "#f4a04c",
+    color: "#f08b3c",
     weight: 3,
-    fillColor: "#e88a3e",
-    fillOpacity: .32
+    opacity: 1,
+    fillColor: "#f08b3c",
+    fillOpacity: 0.10
   };
 
   if (window._selectedSmall) {
