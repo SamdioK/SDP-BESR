@@ -436,6 +436,52 @@
     animation-delay: 0ms !important;
   }
 }
+
+#sdpAuthGate{
+  position:fixed;
+  inset:0;
+  z-index:1000000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#092b29;
+}
+.sdp-auth-card{
+  width:min(420px,100%);
+  padding:25px;
+  background:#103b35;
+  border:1px solid #397065;
+  border-radius:14px;
+  box-shadow:0 20px 60px #0008;
+}
+.sdp-auth-card h2{color:#fff;font-size:20px}
+.sdp-auth-card p{color:#a6c0b6;font-size:11px}
+.sdp-auth-card label{
+  display:block;
+  color:#c5d8ce;
+  font-size:11px;
+  margin:14px 0 6px;
+}
+.sdp-auth-card input{
+  width:100%;
+  padding:12px;
+  background:#092d28;
+  color:white;
+  border:1px solid #39695e;
+  border-radius:7px;
+}
+.sdp-auth-card button{
+  width:100%;
+  padding:12px;
+  margin-top:18px;
+  border:0;
+  border-radius:7px;
+  background:#ed8735;
+  color:#1d211c;
+  font-weight:800;
+}
+#sdpAuthMessage{line-height:1.5}
 </style>
 </head>
 <body>
@@ -500,7 +546,24 @@
 
   </div>
 </div>
-<div class="app">
+<div id="sdpAuthGate">
+  <form id="sdpAuthForm" class="sdp-auth-card">
+    <img src="assets/sdp-logo.jpg" alt="SDP Logo" width="65">
+    <h2>SDP-BESR Administrator Login</h2>
+    <p>Authorised platform administrators only.</p>
+
+    <label for="sdpAuthEmail">Email Address</label>
+    <input id="sdpAuthEmail" type="email" required autocomplete="username">
+
+    <label for="sdpAuthPassword">Password</label>
+    <input id="sdpAuthPassword" type="password" required autocomplete="current-password">
+
+    <button id="sdpAuthSubmit" type="submit">Sign In</button>
+    <p id="sdpAuthMessage" role="status"></p>
+  </form>
+</div>
+
+<div class="app" id="sdpProtectedApp" style="visibility:hidden">
 <aside class="sidebar" id="sidebar">
  <div class="brand"><img class="brand-logo" src="assets/sdp-logo.jpg" alt="Social Democratic Party — Progress logo"><div><b>SDP-BESR</b><small>Benue Election Situation Room</small></div></div>
  <div class="workspace"><small>Operating workspace</small><strong>Benue State Command Centre</strong></div>
@@ -646,6 +709,7 @@
 <div class="toast" id="toast"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const LGAS=["Ado","Agatu","Apa","Buruku","Gboko","Guma","Gwer East","Gwer West","Katsina-Ala","Konshisha","Kwande","Logo","Makurdi","Obi","Ogbadibo","Ohimini","Oju","Okpokwu","Otukpo","Tarka","Ukum","Ushongo","Vandeikya"];
 const TITLES={overview:"Command Centre",elections:"Election Management",geography:"Geographical Monitoring",personnel:"Field Personnel",polling:"Polling-unit Reports",incidents:"Incident Management",results:"Results Management",analytics:"Analytics & Intelligence",notifications:"Notifications",audit:"Audit & Activity Logs",administration:"Administration"};
@@ -1491,6 +1555,113 @@ document.querySelectorAll("[data-election]").forEach(btn=>btn.addEventListener("
     }, 1100);
 
   }, 15000);
+
+})();
+</script>
+<script>
+(function () {
+  const SUPABASE_URL =
+    "https://mcbwbcqetrrwxfqfvhkc.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_3R6ExeGg6ZTR6gQKKhPDvA_xvlSwme1";
+
+  const client = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  window.sdpSupabase = client;
+
+  const gate = document.getElementById("sdpAuthGate");
+  const app = document.getElementById("sdpProtectedApp");
+  const form = document.getElementById("sdpAuthForm");
+  const message = document.getElementById("sdpAuthMessage");
+  const submit = document.getElementById("sdpAuthSubmit");
+
+  function lockApp() {
+    app.style.visibility = "hidden";
+    gate.style.display = "flex";
+  }
+
+  function showMessage(text, colour) {
+    message.textContent = text;
+    message.style.color = colour || "#ffc38e";
+  }
+
+  async function verifyAdministrator() {
+    lockApp();
+    showMessage("Verifying administrator permissions...");
+
+    const { data, error } = await client.rpc("is_gps_admin");
+
+    if (error || data !== true) {
+      await client.auth.signOut();
+      showMessage(
+        error
+          ? "Administrator verification failed: " + error.message
+          : "This account is not an authorised platform administrator.",
+        "#ffaaa4"
+      );
+      return;
+    }
+
+    gate.style.display = "none";
+    app.style.visibility = "visible";
+    showMessage("Administrator verified.", "#9ce0bd");
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    submit.disabled = true;
+    submit.textContent = "Signing in...";
+
+    try {
+      const email =
+        document.getElementById("sdpAuthEmail").value.trim();
+
+      const password =
+        document.getElementById("sdpAuthPassword").value;
+
+      const { error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      await verifyAdministrator();
+
+    } catch (error) {
+      showMessage(error.message, "#ffaaa4");
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Sign In";
+    }
+  });
+
+  client.auth.onAuthStateChange(function (event) {
+    if (event === "SIGNED_OUT") {
+      lockApp();
+      form.reset();
+      showMessage("You have signed out.");
+    }
+  });
+
+  client.auth.getSession().then(async function ({ data, error }) {
+    if (error) {
+      lockApp();
+      showMessage(error.message, "#ffaaa4");
+      return;
+    }
+
+    if (data.session) {
+      await verifyAdministrator();
+    } else {
+      lockApp();
+    }
+  });
 
 })();
 </script>
