@@ -702,7 +702,149 @@
 <section class="view" id="view-analytics"><div class="view-head"><div><div class="eyebrow">Intelligence</div><h1>Analytics & intelligence</h1><div class="subtitle">Operational trends, reporting coverage and risk analysis.</div></div></div><div class="panel"><div class="empty">◷<b>Analytics will appear when verified data is available</b><p>Dashboards will distinguish reported, verified and official information and display source and timestamp context.</p></div></div></section>
 <section class="view" id="view-notifications"><div class="view-head"><div><div class="eyebrow">Communications</div><h1>Notifications</h1><div class="subtitle">Operational alerts, assignments and escalation messages.</div></div></div><div class="panel"><div class="empty">♧<b>You are all caught up</b><p>Notifications will be delivered after accounts, permissions and event triggers are configured.</p></div></div></section>
 <section class="view" id="view-audit"><div class="view-head"><div><div class="eyebrow">Accountability</div><h1>Audit & activity logs</h1><div class="subtitle">Trace important actions, record changes and review history.</div></div></div><div class="panel"><div class="empty">≡<b>Audit trail not connected</b><p>Authentication events, approvals, edits, exports and administrative actions will be recorded here.</p></div></div></section>
-<section class="view" id="view-administration"><div class="view-head"><div><div class="eyebrow">System governance</div><h1>Administration</h1><div class="subtitle">Manage users, permissions, jurisdictions and system protocols.</div></div></div><div class="panel"><div class="empty">⚙<b>Administrative controls are not yet enabled</b><p>System administrators will configure roles and geographic access after secure authentication is implemented.</p></div></div></section>
+<section class="view" id="view-administration">
+  <div class="view-head">
+    <div>
+      <div class="eyebrow">System governance</div>
+      <h1>Administration</h1>
+      <div class="subtitle">
+        Manage authorised personnel, GPS trackers and operational access.
+      </div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-head">Field Agent Trackers</div>
+      <div class="metric-value" id="agentTrackerCount">0</div>
+      <div class="metric-note">Registered field agents</div>
+    </div>
+    <div class="metric">
+      <div class="metric-head">Vehicle Trackers</div>
+      <div class="metric-value" id="vehicleTrackerCount">0</div>
+      <div class="metric-note">Registered operations vehicles</div>
+    </div>
+    <div class="metric">
+      <div class="metric-head">Active Tracking</div>
+      <div class="metric-value" id="activeTrackerCount">0</div>
+      <div class="metric-note">Tracking currently enabled</div>
+    </div>
+    <div class="metric">
+      <div class="metric-head">Total Trackers</div>
+      <div class="metric-value" id="totalTrackerCount">0</div>
+      <div class="metric-note">Registered devices</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:14px">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Register a GPS Tracker</div>
+        <div class="panel-sub">
+          Register a field agent's phone or an operations vehicle.
+        </div>
+      </div>
+    </div>
+
+    <form id="trackerRegistrationForm">
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Tracker Type</label>
+          <select id="trackerType" required>
+            <option value="">Select tracker type</option>
+            <option value="field_agent">Field Agent</option>
+            <option value="vehicle">Operations Vehicle</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tracker Code</label>
+          <input id="trackerCode" required
+            placeholder="Example: SDP-AG-001">
+        </div>
+
+        <div class="field">
+          <label>Tracker Name</label>
+          <input id="trackerName" required
+            placeholder="Example: Gboko Field Agent 01">
+        </div>
+
+        <div class="field">
+          <label>Assigned User ID</label>
+          <input id="trackerUserId"
+            placeholder="Supabase Auth User UUID">
+        </div>
+
+        <div class="field full" id="vehicleRegistrationField"
+          style="display:none">
+          <label>Vehicle Registration Number</label>
+          <input id="vehicleRegistration"
+            placeholder="Enter vehicle registration number">
+        </div>
+
+        <div class="field">
+          <label>Device Source</label>
+          <select id="trackerDeviceSource" required>
+            <option value="browser_phone">Mobile Phone / Browser GPS</option>
+            <option value="external_gps">External GPS Device</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>
+            <input type="checkbox" id="trackerConsent"
+              style="width:auto" required>
+            Consent and authorisation have been obtained for this tracking device.
+          </label>
+        </div>
+
+      </div>
+
+      <div style="margin-top:15px">
+        <button type="submit" class="primary"
+          id="registerTrackerButton">
+          Register Tracker
+        </button>
+      </div>
+    </form>
+    <p id="trackerRegistrationMessage"
+      style="font-size:10px;color:#ffc38e"></p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Registered GPS Trackers</div>
+        <div class="panel-sub">
+          Authorised field personnel and operations vehicles.
+        </div>
+      </div>
+      <button class="secondary" id="refreshTrackers">
+        Refresh List
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tracker Code</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Assigned User</th>
+            <th>Tracking</th>
+          </tr>
+        </thead>
+        <tbody id="trackerTableBody">
+          <tr>
+            <td colspan="5">Tracker records will appear here.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 <div class="footer">SDP-BESR · Social Democratic Party, Benue State · Election Monitoring, Incident Response and Results Management System · Interface v0.2.5</div>
 </div></main></div>
 <div class="modal-backdrop" id="incidentModal"><div class="modal"><div class="modal-head"><b>New incident report · Preview only</b><button class="icon-btn" id="closeModal">✕</button></div><form id="incidentForm"><div class="modal-body"><div class="notice">This preview form does not save or transmit incident data. Secure reporting and evidence handling will be connected later.</div><div class="form-grid"><div class="field"><label>Incident category</label><select required><option value="">Select category</option><option>Electoral violence or threat</option><option>Ballot or material snatching</option><option>Alleged result-sheet alteration</option><option>Alleged vote buying</option><option>Voter intimidation</option><option>BVAS malfunction</option><option>Late officials or materials</option><option>Voter exclusion</option><option>Disinformation</option><option>Other</option></select></div><div class="field"><label>Severity</label><select required><option value="">Select severity</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div><div class="field"><label>Local government area</label><select id="incidentLga" required><option value="">Select LGA</option></select></div><div class="field"><label>Ward (provisional)</label><input placeholder="Ward name or code"></div><div class="field full"><label>Polling unit / specific location</label><input placeholder="Enter location details"></div><div class="field full"><label>Incident description</label><textarea required placeholder="Distinguish direct observation from information received from others."></textarea></div></div></div><div class="modal-foot"><button type="button" class="secondary" id="cancelModal">Cancel</button><button class="primary">Preview report</button></div></form></div></div>
