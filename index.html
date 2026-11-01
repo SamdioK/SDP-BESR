@@ -1921,11 +1921,16 @@ function sdpRenderWardDirectory(lgaName) {
   const root = document.getElementById("sdpWardDirectory");
   if (!root) return [];
 
-  const normalise = value =>
-    String(value || "").trim().toLowerCase();
+  const normaliseLgaName = value =>
+    String(value || "")
+      .toUpperCase()
+      .replace(/\bLGA\b/g, "")
+      .replace(/[^A-Z0-9]/g, "");
+
+  const selectedName = normaliseLgaName(lgaName);
 
   const wards = SDP_BENUE_WARDS.filter(
-    ward => normalise(ward.lga_name) === normalise(lgaName)
+    ward => normaliseLgaName(ward.lga_name) === selectedName
   );
 
   root.innerHTML = wards.length
