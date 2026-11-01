@@ -1600,7 +1600,7 @@ const LGA_ALIASES={
  "agatu":["agatu"],"apa":["apa"],"buruku":["buruku"],"gboko":["gboko"],
  "guma":["guma"],"konshisha":["konshisha"],"kwande":["kwande"],
  "logo":["logo"],"makurdi":["makurdi"],"obi":["obi"],"ohimini":["ohimini"],
- "oju":["oju"],"otukpo":["otukpo"],"tarka":["tarka"],"ukum":["ukum"],
+ "oju":["oju"],"otukpo":["otukpo","oturkpo"],"tarka":["tarka"],"ukum":["ukum"],
  "ushongo":["ushongo"]
 };
 function canonicalLga(name){
@@ -1608,7 +1608,17 @@ function canonicalLga(name){
  for(const [canonical,aliases] of Object.entries(LGA_ALIASES))if(aliases.some(a=>cleanName(a)===key))return canonical;
  return key;
 }
-function featureName(f){const p=f.properties||{};return String(p.ADM2_EN||p.ADM2_REF||p.shapeName||p.NAME_2||p.name||"").trim()}
+function featureName(f) {
+  const p = f.properties || {};
+  const name = String(
+    p.ADM2_EN || p.ADM2_REF ||
+    p.shapeName || p.NAME_2 || p.name || ""
+  ).trim();
+
+  return cleanName(name) === "oturkpo"
+    ? "Otukpo"
+    : name;
+}
 const mapStyle = {
   color: "#8f4fbe",
   weight: 1.5,
