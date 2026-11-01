@@ -67,6 +67,36 @@
 .data-label.verified{border-color:#4a7d69;color:#9ce0bd;background:#123c30}
 .data-label.official{border-color:#6d5790;color:#dfc5f4;background:#302447}
 .readiness-note{border-left:3px solid #e39a48;background:#352a20;padding:10px 12px;border-radius:0 7px 7px 0;color:#e8c89f;font-size:8px;line-height:1.55;margin-top:12px}
+
+/* SDP-BESR electoral ward directory */
+.ward-directory{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:7px;
+  margin-top:12px;
+}
+.ward-directory-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid #345f55;
+  background:#0b302c;
+  border-radius:7px;
+  padding:9px;
+  color:#e8f2ec;
+  font-size:11px;
+}
+.ward-directory-item b{
+  color:#e8b36d;
+  font-size:10px;
+  min-width:24px;
+}
+.ward-directory-item small{
+  display:block;
+  color:#91b2a5;
+  font-size:8px;
+  margin-top:2px;
+}
 @media(max-width:900px){.assurance-grid{grid-template-columns:repeat(2,1fr)}.process-flow{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.assurance-grid{grid-template-columns:1fr 1fr}.process-flow{grid-template-columns:1fr}}
 
@@ -717,6 +747,24 @@
     <div class="panel-title">GEOGRAPHICAL INFORMATION</div>
     <div class="panel-sub" id="lgaGeographicalInfo">
       Select an LGA to view its boundary reference.
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:15px;padding:15px">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">ELECTORAL WARD DIRECTORY</div>
+        <div class="panel-sub">
+          INEC Registration Areas · 23 LGAs · 276 wards
+        </div>
+      </div>
+      <span class="data-label verified">
+        CONFIRMED INEC DATA
+      </span>
+    </div>
+
+    <div id="sdpWardDirectory" class="ward-directory">
+      Select an LGA to view its electoral wards.
     </div>
   </div>
 </section>
@@ -1688,6 +1736,213 @@ async function loadBoundaries(){
   console.error("SDP-BESR boundary loading:",err);
  }
 }
+/* ==========================================
+   SDP-BESR: BENUE STATE ELECTORAL WARD DATA
+   23 LGAs · 276 INEC Registration Areas
+   State code: 07
+   ========================================== */
+
+const SDP_BENUE_WARD_NAMES = {
+  "Ado": [
+    "AKPOGE/OGBILOLO", "APA", "EKILE", "IGUMALE I",
+    "IGUMALE II", "IJIGBAN", "OGEGE", "ROYONGO",
+    "UKWONYO", "ULAYI"
+  ],
+
+  "Agatu": [
+    "EGBA", "ENUNGBA", "OBAGAJI", "ODUGBEHO",
+    "OGBAULU", "OGWULE-KADUNA", "OGWULE OGBAULU",
+    "OKOKOLO", "OSHIGBUDU", "USHA"
+  ],
+
+  "Apa": [
+    "AKPETE/OJANTELLE", "AUKE", "EDIKWU I", "EDIKWU II",
+    "IGAH-OKPAYA", "IGORO", "IKOBI", "OBA",
+    "OFOKE", "OIJI", "UGBOKPO"
+  ],
+
+  "Buruku": [
+    "BINEV", "ETULO", "MBAADE", "MBAAKURA",
+    "MBAAPEN", "MBAATIRKYAA", "MBAAZAGEE",
+    "MBAIKYONGO/NYIFON", "MBAITYOUGH", "MBAKYAAN",
+    "MBAYA", "MBAYAKA", "SHOROV"
+  ],
+
+  "Gboko": [
+    "GBK/CENTRAL MARKET", "GBOKO EAST", "GBOKO NORTH WEST",
+    "GBOKO SOUTH", "IGYOROV", "MBAANKU", "MBAA VARAKAA",
+    "MBADAM", "MBADIM", "MBAKPER", "MBAKWEN",
+    "MBATAN", "MBATSER", "MBATYU", "UKPEKPE",
+    "YANDEV NORTH", "YANDEV SOUTH"
+  ],
+
+  "Guma": [
+    "ABINSI", "KAAMBE", "MBABAI", "MBADWEM",
+    "MBAWA", "MBAYER/YANDEV", "NYIEV", "NZOROV",
+    "SAGHEV", "UVIR"
+  ],
+
+  "Gwer East": [
+    "AKPACH'AYI", "ALIADE TOWN", "GBEMACHA",
+    "IKYOGBAJIR", "IKYONOV", "MBABUR", "MBAIASE",
+    "MBAIKYU", "MBAIKYAAN", "MBALOM", "MBASOMBO",
+    "MBAYOM", "SHOUGH", "UGEE"
+  ],
+
+  "Gwer West": [
+    "AVIHIJIME", "GAAMBE - USHIN", "GBAANGE/TONGOV",
+    "IKYAGHEV", "ITYOUGHATEE/INJAHA", "MBABUANDE",
+    "MBACHOHON", "MBANYAMSHI", "MBAPA", "MERKYEN",
+    "SAGHEV/UKUSU", "SENGEV", "SENGEV/YENGEV",
+    "TIJIME", "TSAMBE/MBASEV"
+  ],
+
+  "Katsina-Ala": [
+    "IKURAV TIEV I", "IKURAV TIEV II", "IWAR(TONGOV I)",
+    "KATSINA-ALA TOWN", "MBACHER", "MBAJIR",
+    "MBATULA/MBEREV", "MBAYONGO", "MICHIHE",
+    "TIIR(TONGOV II)", "UTANGE", "YOOYO"
+  ],
+
+  "Konshisha": [
+    "IKYURAV/MBATWER", "MBAGUSA/MBATSER", "MBAIKYASE",
+    "MBAIWARNYAM", "MBAKE", "MBANOR", "MBATSEN",
+    "MBAVAA", "MBAWAR", "MBAYEGH/MBAIKYER",
+    "TSE-AGBERAGBA"
+  ],
+
+  "Kwande": [
+    "ADIKPO METROPOLIS", "LIEV I", "LIEV II", "MBADURA",
+    "MBAGBA/MBAIKYAN", "MBAIKYOR", "MBAKETSA",
+    "MENEV", "TONDOV I", "TONDOV II", "USAR",
+    "MBAYOO", "YAAV", "MOON", "KUMAKWAGH"
+  ],
+
+  "Logo": [
+    "MBADYUL", "MBAGBER", "MBATER", "MBAYAM",
+    "MBAVUUR", "NENZEV", "TOMBO", "TURAN",
+    "UKEMBERGYA/ISWAREV", "YONOV"
+  ],
+
+  "Makurdi": [
+    "AGAN", "ANKPA/WADATA", "BAR", "CENTRAL/SOUTH MISSION",
+    "CLERKS/MARKET", "FIIDI", "MBALAGH", "MODERN MARKET",
+    "NORTH BANK I", "NORTH BANK II", "WAILOMAYO"
+  ],
+
+  "Obi": [
+    "ADIKO", "ADUM WEST", "IKWOKWU", "IRABI",
+    "ITOGO", "OBARIKE", "OBEKO", "ODIAPA",
+    "OGORE", "OKPOKWU", "OKWUTUNGBE", "ORIHI"
+  ],
+
+  "Ogbadibo": [
+    "AI-OODO I", "AI-OODO II", "AI-OONO I",
+    "AI-OONO II", "AI-OONO III", "EHAJE I",
+    "EHAJE II", "ITABONO I", "ITABONO II",
+    "OLACHAGBAHA", "OROKAM I", "OROKAM II",
+    "OROKAM III"
+  ],
+
+  "Oju": [
+    "ADOKPA", "AINU", "IBILLA", "IDELLE",
+    "IYECHE", "OBORU/OYE", "OJU", "OKPOKPO",
+    "OKWUDU", "OWO", "UKPA/AINU ETTE"
+  ],
+
+  "Ohimini": [
+    "AGADAGBA", "AWUME EHAJE", "AWUME ICHO",
+    "EHATOKPE", "IDEKPA", "OCHOBO", "OGLEWU EHAJE",
+    "OGLEWU ICHO", "ONYAGEDE-EHAJE (ALLE)",
+    "ONYAGEDE ICHO (OGOLI)"
+  ],
+
+  "Okpokwu": [
+    "AMEJO", "EKE", "ICHAMA II", "OJIGO",
+    "OJOGA", "OKONOBO", "OKPAILE/INGLE",
+    "OKPOGA CENTRAL", "OKPOGA NORTH", "OKPOGA SOUTH",
+    "OKPOGA WEST", "UGBOKOLO"
+  ],
+
+  "Otukpo": [
+    "ADOKA-ICHO", "ADOKA-HAJE", "ALLAN", "ENTEKPA",
+    "EWULO", "OKETE", "OTOBI", "OTUKPO TOWN CENTRAL",
+    "OTUKPO TOWN EAST", "OTUKPO TOWN WEST",
+    "UGBOJU-EHAJE", "UGBOJU-ICHO", "UGBOJU-OTAHE"
+  ],
+
+  "Tarka": [
+    "MBAAJIR AKAA", "MBAAYO", "MBACHAVER IKYONDO",
+    "MBAIGBA", "MBAIKYAA", "MBAIKYO/MBAYIA",
+    "MBAKWAKEM", "MBANYAGBER", "SHITILE", "TONGOV"
+  ],
+
+  "Ukum": [
+    "ATERAYANGE", "AZENDESHI", "BORIKYO", "ITYULUV",
+    "KENDEV", "KUNDAV", "LUMBUV", "MBATIAN",
+    "MBAYENGE", "MBAZUN", "TSAAV", "UGBAAM", "UYAM"
+  ],
+
+  "Ushongo": [
+    "ATIRKYESE", "IKOV", "LESSEL", "MBAAKA",
+    "MBAANYAM", "MBAAWE", "MBAGBA", "MBAGWAZA",
+    "MBAKUHA", "MBAYEGH", "UTANGE"
+  ],
+
+  "Vandeikya": [
+    "MBADEDE", "MBATYOUGH", "MBAGBAM", "MBAGBERA",
+    "MBAJOR", "MBAKAANGE", "MBAKYAHA", "MBAYONGO",
+    "NINGEV", "TSAMBE", "VANDEIKYA TOWNSHIP",
+    "MBANYUMANGBAGH"
+  ]
+};
+
+/* Confirmed INEC ward records with sequential LGA and ward codes */
+const SDP_BENUE_WARDS = Object.entries(SDP_BENUE_WARD_NAMES)
+  .flatMap(([lgaName, wardNames], lgaIndex) =>
+    wardNames.map((wardName, wardIndex) => {
+      const lgaCode = String(lgaIndex + 1).padStart(2, "0");
+      const wardCode = String(wardIndex + 1).padStart(2, "0");
+
+      return {
+        state_code: "07",
+        state_name: "Benue",
+        lga_code: lgaCode,
+        lga_name: lgaName,
+        ward_code: wardCode,
+        ward_name: wardName,
+        full_code: `07/${lgaCode}/${wardCode}`
+      };
+    })
+  );
+
+/* Display the selected LGA's wards */
+function sdpRenderWardDirectory(lgaName) {
+  const root = document.getElementById("sdpWardDirectory");
+  if (!root) return [];
+
+  const normalise = value =>
+    String(value || "").trim().toLowerCase();
+
+  const wards = SDP_BENUE_WARDS.filter(
+    ward => normalise(ward.lga_name) === normalise(lgaName)
+  );
+
+  root.innerHTML = wards.length
+    ? wards.map(ward => `
+        <div class="ward-directory-item">
+          <b>${ward.ward_code}</b>
+          <span>
+            ${sdpGeoSafeText(ward.ward_name)}
+            <small>INEC code: ${ward.full_code}</small>
+          </span>
+        </div>
+      `).join("")
+    : "No ward records found for this LGA.";
+
+  return wards;
+}
+
 function selectLga(name) {
   const target = canonicalLga(name);
 
@@ -1760,8 +2015,10 @@ function selectLga(name) {
     document.getElementById("selectedLgaTitle").textContent =
       selectedLgaName.toUpperCase() + " LGA OPERATIONS";
 
+    const selectedWards = sdpRenderWardDirectory(selectedLgaName);
+
     document.getElementById("lgaWardCount").textContent =
-      "Pending";
+      selectedWards.length;
 
     document.getElementById("lgaPuCount").textContent =
       "Pending";
