@@ -86,6 +86,28 @@
   color:#e8f2ec;
   font-size:11px;
 }
+button.ward-directory-item {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s, border-color .2s;
+}
+
+button.ward-directory-item:hover {
+  background: #17483e;
+  border-color: #f08b3c;
+}
+
+.ward-directory-item span:nth-child(2) {
+  flex: 1;
+}
+
+.ward-open-icon {
+  color: #e8b36d;
+  font-size: 15px;
+}
+
 .ward-directory-item b{
   color:#e8b36d;
   font-size:10px;
@@ -755,11 +777,11 @@
       <div>
         <div class="panel-title">ELECTORAL WARD DIRECTORY</div>
         <div class="panel-sub">
-          INEC Registration Areas · 23 LGAs · 276 wards
+          INEC ward names · 23 LGAs · 276 wards · sequence numbers are for display only
         </div>
       </div>
-      <span class="data-label verified">
-        CONFIRMED INEC DATA
+      <span class="data-label">
+        INEC WARD NAMES · MAP BOUNDARIES ARE REFERENCE DATA
       </span>
     </div>
 
@@ -1199,6 +1221,8 @@ async function sdpLoadReferenceLayers(map) {
       "statename='Benue'",
       "wardname,wardcode,lganame,lgacode,statename,statecode,status,source"
     );
+
+    map._sdpWardFeatures = wards.features || [];
 
     L.geoJSON(wards, {
       renderer: map._sdpCanvasRenderer,
@@ -1897,55 +1921,152 @@ const SDP_BENUE_WARD_NAMES = {
   ]
 };
 
-/* Confirmed INEC ward records with sequential LGA and ward codes */
-const SDP_BENUE_WARDS = Object.entries(SDP_BENUE_WARD_NAMES)
-  .flatMap(([lgaName, wardNames], lgaIndex) =>
-    wardNames.map((wardName, wardIndex) => {
-      const lgaCode = String(lgaIndex + 1).padStart(2, "0");
-      const wardCode = String(wardIndex + 1).padStart(2, "0");
-
-      return {
-        state_code: "07",
-        state_name: "Benue",
-        lga_code: lgaCode,
-        lga_name: lgaName,
-        ward_code: wardCode,
-        ward_name: wardName,
-        full_code: `07/${lgaCode}/${wardCode}`
-      };
-    })
-  );
-
 /* Display the selected LGA's wards */
 function sdpRenderWardDirectory(lgaName) {
   const root = document.getElementById("sdpWardDirectory");
+  const countElement = document.getElementById("lgaWardCount");
+
   if (!root) return [];
 
-  const normaliseLgaName = value =>
-    String(value || "")
-      .toUpperCase()
-      .replace(/\bLGA\b/g, "")
-      .replace(/[^A-Z0-9]/g, "");
-
-  const selectedName = normaliseLgaName(lgaName);
-
-  const wards = SDP_BENUE_WARDS.filter(
-    ward => normaliseLgaName(ward.lga_name) === selectedName
+  // Match the selected LGA against the official directory keys.
+  const lgaKey = Object.keys(SDP_BENUE_WARD_NAMES).find(
+    key => cleanName(key) === cleanName(lgaName)
   );
 
+  const wardNames = lgaKey
+    ? SDP_BENUE_WARD_NAMES[lgaKey]
+    : [];
+
+  const wards = wardNames.map((name, index) => ({
+    lga_name: lgaKey,
+    ward_name: name,
+    ward_code: String(index + 1).padStart(2, "0")
+  }));
+
+  // Always display the actual number of names in the directory.
+  if (countElement) {
+    countElement.textContent = wards.length;
+  }
+
   root.innerHTML = wards.length
-    ? wards.map(ward => `
-        <div class="ward-directory-item">
+    ? wards.map((ward, index) => `
+        <button
+          type="button"
+          class="ward-directory-item"
+          data-ward-index="${index}"
+          title="View ${sdpGeoSafeText(ward.ward_name)} boundary on map"
+        >
           <b>${ward.ward_code}</b>
           <span>
             ${sdpGeoSafeText(ward.ward_name)}
-            <small>INEC code: ${ward.full_code}</small>
+            <small>⌖ Click to view ward boundary</small>
           </span>
-        </div>
+          <span class="ward-open-icon">↗</span>
+        </button>
       `).join("")
-    : "No ward records found for this LGA.";
+    : `<div class="empty">No ward names are registered for ${sdpGeoSafeText(lgaName)}.</div>`;
+
+  root.querySelectorAll("[data-ward-index]").forEach(button => {
+    button.addEventListener("click", () => {
+      const ward = wards[Number(button.dataset.wardIndex)];
+
+      if (ward) {
+        sdpShowWardBoundary(ward.lga_name, ward.ward_name);
+      }
+    });
+  });
 
   return wards;
+}
+
+function sdpShowWardBoundary(lgaName, wardName) {
+  const normalise = value => cleanName(value);
+
+  function findWard(map) {
+    const features = map?._sdpWardFeatures || [];
+
+    return features.find(feature => {
+      const p = feature.properties || {};
+
+      return (
+        normalise(p.statename) === "benue" &&
+        normalise(p.lganame) === normalise(lgaName) &&
+        normalise(p.wardname) === normalise(wardName)
+      );
+    });
+  }
+
+  const smallFeature = findWard(mapSmall);
+  const largeFeature = findWard(mapLarge);
+
+  if (!smallFeature && !largeFeature) {
+    toast(
+      "The ward name is listed, but its matching GRID3 boundary is not available. Check the reference boundary data."
+    );
+    return;
+  }
+
+  const wardStyle = {
+    color: "#ff9b38",
+    weight: 3,
+    opacity: 1,
+    fillColor: "#f08b3c",
+    fillOpacity: 0.25
+  };
+
+  // Remove previous selected ward.
+  [mapSmall, mapLarge].forEach(map => {
+    if (map && map._sdpSelectedWard) {
+      map.removeLayer(map._sdpSelectedWard);
+      map._sdpSelectedWard = null;
+    }
+  });
+
+  function displayWard(map, feature) {
+    if (!map || !feature) return;
+
+    const layer = L.geoJSON(feature, {
+      style: wardStyle
+    }).addTo(map);
+
+    map._sdpSelectedWard = layer;
+
+    const bounds = layer.getBounds();
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, {
+        padding: [25, 25],
+        maxZoom: 13
+      });
+    }
+
+    layer.bindPopup(
+      `<strong>${sdpGeoSafeText(wardName)}</strong>` +
+      `<br>${sdpGeoSafeText(lgaName)} LGA` +
+      `<br>Benue State` +
+      `<br><small>GRID3 reference boundary; verify against current INEC records.</small>`
+    ).openPopup();
+  }
+
+  displayWard(mapSmall, smallFeature);
+  displayWard(mapLarge, largeFeature);
+
+  // Direct the user to the full geographical map.
+  showPage("geography");
+
+  setTimeout(() => {
+    if (mapLarge) {
+      mapLarge.invalidateSize();
+      if (mapLarge._sdpSelectedWard) {
+        mapLarge.fitBounds(
+          mapLarge._sdpSelectedWard.getBounds(),
+          { padding: [25, 25], maxZoom: 13 }
+        );
+      }
+    }
+  }, 250);
+
+  toast(`${wardName} · ${lgaName} LGA`);
 }
 
 function selectLga(name) {
@@ -2020,10 +2141,7 @@ function selectLga(name) {
     document.getElementById("selectedLgaTitle").textContent =
       selectedLgaName.toUpperCase() + " LGA OPERATIONS";
 
-    const selectedWards = sdpRenderWardDirectory(selectedLgaName);
-
-    document.getElementById("lgaWardCount").textContent =
-      selectedWards.length;
+    sdpRenderWardDirectory(name);
 
     document.getElementById("lgaPuCount").textContent =
       "Pending";
