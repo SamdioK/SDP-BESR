@@ -113,6 +113,81 @@ button.ward-directory-item:hover {
   font-size:10px;
   min-width:24px;
 }
+/* SDP-BESR VERIFIED POLLING-UNIT DIRECTORY */
+
+.sdp-pu-directory {
+  margin-top: 14px;
+  border-top: 1px solid #2c5d53;
+  padding-top: 14px;
+}
+
+.sdp-pu-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+.sdp-pu-toolbar input {
+  flex: 1;
+  min-width: 190px;
+  border: 1px solid #39695e;
+  background: #092d28;
+  color: #f1f6f1;
+  border-radius: 7px;
+  padding: 9px;
+  font-size: 10px;
+}
+
+.sdp-pu-list {
+  display: grid;
+  gap: 6px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.sdp-pu-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #345f55;
+  background: #0b302c;
+  border-radius: 7px;
+  padding: 9px;
+}
+
+.sdp-pu-item b {
+  display: block;
+  color: #f1f5f2;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.sdp-pu-item small {
+  display: block;
+  color: #9ab8aa;
+  font-size: 8px;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.sdp-pu-item em {
+  font-style: normal;
+  color: #9ce0bd;
+  border: 1px solid #39735c;
+  border-radius: 20px;
+  padding: 4px 7px;
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+.sdp-pu-summary {
+  font-size: 9px;
+  color: #a9c3b8;
+  margin: 5px 0 9px;
+}
+
 .ward-directory-item small{
   display:block;
   color:#91b2a5;
@@ -786,7 +861,28 @@ button.ward-directory-item:hover {
     </div>
 
     <div id="sdpWardDirectory" class="ward-directory">
-      Select an LGA to view its electoral wards.
+      Select an LGA to load its verified electoral wards.
+    </div>
+
+    <!-- VERIFIED POLLING UNIT DIRECTORY -->
+
+    <div class="sdp-pu-directory">
+
+      <div class="panel-title">
+        VERIFIED POLLING-UNIT REGISTER
+      </div>
+
+      <div class="panel-sub">
+        Select a ward above to view its registered polling units.
+      </div>
+
+      <div
+        id="sdpPollingUnitDirectory"
+        class="sdp-pu-summary"
+      >
+        Select a ward to display its polling units.
+      </div>
+
     </div>
   </div>
 </section>
@@ -2011,62 +2107,411 @@ const SDP_BENUE_WARD_NAMES = {
   ]
 };
 
-/* Display the selected LGA's wards */
-function sdpRenderWardDirectory(lgaName) {
-  const root = document.getElementById("sdpWardDirectory");
-  const countElement = document.getElementById("lgaWardCount");
+/* ==========================================
+   SDP-BESR VERIFIED POLLING-UNIT DIRECTORY
+   Source: public.benue_polling_units
+   Benue State: 23 LGAs, 276 wards, 5,102 PUs
+   ========================================== */
+
+let sdpCurrentLgaPollingUnits = [];
+let sdpSelectedWardPollingUnits = [];
+
+
+/* LOAD VERIFIED WARDS FOR SELECTED LGA */
+
+async function sdpRenderWardDirectory(lgaName) {
+
+  const root = document.getElementById(
+    "sdpWardDirectory"
+  );
+
+  const puRoot = document.getElementById(
+    "sdpPollingUnitDirectory"
+  );
+
+  const wardCountElement = document.getElementById(
+    "lgaWardCount"
+  );
+
+  const puCountElement = document.getElementById(
+    "lgaPuCount"
+  );
 
   if (!root) return [];
 
-  // Match the selected LGA against the official directory keys.
-  const lgaKey = Object.keys(SDP_BENUE_WARD_NAMES).find(
-    key => cleanName(key) === cleanName(lgaName)
-  );
+  root.textContent = "Loading verified ward records...";
 
-  const wardNames = lgaKey
-    ? SDP_BENUE_WARD_NAMES[lgaKey]
-    : [];
-
-  const wards = wardNames.map((name, index) => ({
-    lga_name: lgaKey,
-    ward_name: name,
-    ward_code: String(index + 1).padStart(2, "0")
-  }));
-
-  // Always display the actual number of names in the directory.
-  if (countElement) {
-    countElement.textContent = wards.length;
+  if (puRoot) {
+    puRoot.textContent =
+      "Select a ward to display its polling units.";
   }
 
-  root.innerHTML = wards.length
-    ? wards.map((ward, index) => `
-        <button
-          type="button"
-          class="ward-directory-item"
-          data-ward-index="${index}"
-          title="View ${sdpGeoSafeText(ward.ward_name)} boundary on map"
-        >
-          <b>${ward.ward_code}</b>
-          <span>
-            ${sdpGeoSafeText(ward.ward_name)}
-            <small>⌖ Click to view ward boundary</small>
-          </span>
-          <span class="ward-open-icon">↗</span>
-        </button>
-      `).join("")
-    : `<div class="empty">No ward names are registered for ${sdpGeoSafeText(lgaName)}.</div>`;
+  if (wardCountElement) {
+    wardCountElement.textContent = "Loading...";
+  }
 
-  root.querySelectorAll("[data-ward-index]").forEach(button => {
-    button.addEventListener("click", () => {
-      const ward = wards[Number(button.dataset.wardIndex)];
+  if (puCountElement) {
+    puCountElement.textContent = "Loading...";
+  }
 
-      if (ward) {
-        sdpShowWardBoundary(ward.lga_name, ward.ward_name);
+  const client = window.sdpSupabase;
+
+  if (!client) {
+
+    root.textContent =
+      "Database connection is not ready. Please reload.";
+
+    if (puCountElement) {
+      puCountElement.textContent = "Unavailable";
+    }
+
+    return [];
+  }
+
+  try {
+
+    const { data, error } = await client
+
+      .from("benue_polling_units")
+
+      .select(`
+        lga_name,
+        ward_code,
+        ward_name,
+        pu_code,
+        pu_name,
+        pu_location,
+        full_code,
+        verification_status
+      `)
+
+      .ilike("lga_name", lgaName)
+
+      .eq("verification_status", "verified")
+
+      .order("ward_code", {
+        ascending: true
+      })
+
+      .order("pu_code", {
+        ascending: true
+      });
+
+    if (error) throw error;
+
+    sdpCurrentLgaPollingUnits = data || [];
+
+    sdpSelectedWardPollingUnits = [];
+
+    /* GROUP POLLING UNITS BY ACTUAL WARD CODE */
+
+    const wardMap = new Map();
+
+    sdpCurrentLgaPollingUnits.forEach(row => {
+
+      const key =
+        String(row.ward_code || "") +
+        "|" +
+        String(row.ward_name || "");
+
+      if (!wardMap.has(key)) {
+
+        wardMap.set(key, {
+
+          ward_code: row.ward_code,
+
+          ward_name: row.ward_name,
+
+          polling_units: []
+
+        });
+
       }
+
+      wardMap.get(key).polling_units.push(row);
+
     });
+
+    const wards = Array.from(wardMap.values());
+
+    wards.sort((a, b) =>
+      String(a.ward_code).localeCompare(
+        String(b.ward_code),
+        undefined,
+        { numeric: true }
+      )
+    );
+
+    /* UPDATE LGA STATISTICS */
+
+    if (wardCountElement) {
+
+      wardCountElement.textContent =
+        String(wards.length);
+
+    }
+
+    if (puCountElement) {
+
+      puCountElement.textContent =
+        String(sdpCurrentLgaPollingUnits.length);
+
+    }
+
+    /* DISPLAY ACTUAL DATABASE WARDS */
+
+    root.innerHTML = wards.length
+
+      ? wards.map((ward, index) => `
+
+          <button
+            type="button"
+            class="ward-directory-item"
+            data-ward-index="${index}"
+            title="View verified polling units in ${sdpGeoSafeText(ward.ward_name)}"
+          >
+
+            <b>
+              ${sdpGeoSafeText(ward.ward_code)}
+            </b>
+
+            <span>
+
+              ${sdpGeoSafeText(ward.ward_name)}
+
+              <small>
+                ${ward.polling_units.length}
+                verified polling units · Select to view
+              </small>
+
+            </span>
+
+            <span class="ward-open-icon">↗</span>
+
+          </button>
+
+        `).join("")
+
+      : `
+        <div class="empty">
+          No verified ward records were found for this LGA.
+        </div>
+      `;
+
+    /* WARD SELECTION */
+
+    root.querySelectorAll(
+      "[data-ward-index]"
+    ).forEach(button => {
+
+      button.addEventListener("click", () => {
+
+        const ward = wards[
+          Number(button.dataset.wardIndex)
+        ];
+
+        if (ward) {
+
+          sdpRenderPollingUnits(ward);
+
+        }
+
+      });
+
+    });
+
+    return wards;
+
+  } catch (error) {
+
+    console.error(
+      "Could not load verified Benue polling units:",
+      error
+    );
+
+    root.textContent =
+      "Could not load the verified directory: " +
+      error.message;
+
+    if (wardCountElement) {
+      wardCountElement.textContent = "Error";
+    }
+
+    if (puCountElement) {
+      puCountElement.textContent = "Error";
+    }
+
+    return [];
+
+  }
+
+}
+
+
+/* DISPLAY POLLING UNITS IN SELECTED WARD */
+
+function sdpRenderPollingUnits(ward) {
+
+  const root = document.getElementById(
+    "sdpPollingUnitDirectory"
+  );
+
+  if (!root) return;
+
+  sdpSelectedWardPollingUnits =
+    ward.polling_units || [];
+
+  const rows = sdpSelectedWardPollingUnits;
+
+  root.innerHTML = `
+
+    <div class="sdp-pu-summary">
+
+      <strong>
+        ${sdpGeoSafeText(ward.ward_name)}
+      </strong>
+
+      · ${rows.length} verified polling units
+
+      · Ward code
+      ${sdpGeoSafeText(ward.ward_code)}
+
+    </div>
+
+    <div class="sdp-pu-toolbar">
+
+      <input
+        id="sdpPuSearch"
+        type="search"
+        placeholder="Search polling-unit name or code..."
+        aria-label="Search polling units"
+      >
+
+    </div>
+
+    <div
+      id="sdpPuResults"
+      class="sdp-pu-list"
+    ></div>
+
+  `;
+
+  const results = root.querySelector(
+    "#sdpPuResults"
+  );
+
+  const search = root.querySelector(
+    "#sdpPuSearch"
+  );
+
+
+  /* SEARCH AND FILTER */
+
+  function renderRows(term) {
+
+    const q = String(term || "")
+      .trim()
+      .toLowerCase();
+
+    const filtered = rows.filter(row => {
+
+      return [
+
+        row.pu_name,
+
+        row.pu_code,
+
+        row.full_code,
+
+        row.pu_location
+
+      ].some(value =>
+
+        String(value || "")
+          .toLowerCase()
+          .includes(q)
+
+      );
+
+    });
+
+
+    /* DISPLAY MATCHING POLLING UNITS */
+
+    results.innerHTML = filtered.length
+
+      ? filtered.map(row => `
+
+          <article class="sdp-pu-item">
+
+            <span>
+
+              <b>
+                ${sdpGeoSafeText(row.pu_name)}
+              </b>
+
+              <small>
+                PU code:
+                ${sdpGeoSafeText(row.pu_code)}
+              </small>
+
+              <small>
+                Register code:
+                ${sdpGeoSafeText(row.full_code)}
+              </small>
+
+              ${
+                row.pu_location
+                  ? `
+                    <small>
+                      Location:
+                      ${sdpGeoSafeText(row.pu_location)}
+                    </small>
+                  `
+                  : ""
+              }
+
+            </span>
+
+            <em>VERIFIED</em>
+
+          </article>
+
+        `).join("")
+
+      : `
+        <div class="empty" style="padding:20px">
+          No matching polling units found.
+        </div>
+      `;
+
+
+    const summary = root.querySelector(
+      ".sdp-pu-summary"
+    );
+
+    if (summary) {
+
+      summary.textContent =
+        filtered.length +
+        " of " +
+        rows.length +
+        " verified polling units";
+
+    }
+
+  }
+
+
+  search.addEventListener("input", () => {
+
+    renderRows(search.value);
+
   });
 
-  return wards;
+
+  renderRows("");
+
 }
 
 function sdpShowWardBoundary(lgaName, wardName) {
@@ -2244,7 +2689,7 @@ function selectLga(name) {
     sdpRenderWardDirectory(name);
 
     document.getElementById("lgaPuCount").textContent =
-      "Pending";
+      "Loading...";
 
     document.getElementById("lgaAgentCount").textContent =
       "Pending";
