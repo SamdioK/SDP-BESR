@@ -1,0 +1,14 @@
+<section class="view" id="view-elections">
+ <div class="view-head"><div><div class="eyebrow">Configuration · Election management</div><h1>Election management</h1><div class="subtitle">Create and maintain election cycles, contests, participating parties and candidates.</div></div><button class="primary" id="emAddRecord">＋ Configure election</button></div>
+ <div class="em-alert"><b>Configuration control</b><span>Only authorised administrators can create or publish election records. Confirm all election dates, constituency boundaries and candidate details against official INEC records before publication.</span></div>
+ <div class="em-stats" id="emStats"><article><small>Election cycles</small><b id="emCycleCount">—</b></article><article><small>Contests</small><b id="emContestCount">—</b></article><article><small>Political parties</small><b id="emPartyCount">—</b></article><article><small>Candidates</small><b id="emCandidateCount">—</b></article></div>
+ <div class="panel em-workspace">
+  <div class="em-tabs" role="tablist" aria-label="Election configuration sections">
+   <button class="active" data-em-tab="cycles">Election cycles</button><button data-em-tab="contests">Contests</button><button data-em-tab="parties">Political parties</button><button data-em-tab="candidates">Candidates</button>
+  </div>
+  <div class="em-toolbar"><div><b id="emSectionTitle">Election cycles</b><p id="emSectionHint">Create and manage electoral cycles.</p></div><button class="primary" id="emCreate">＋ Add election cycle</button></div>
+  <div id="emNotice" class="em-notice" role="status" aria-live="polite"></div>
+  <div id="emContent"><div class="empty">Loading election configuration…</div></div>
+ </div>
+ <div class="em-footnote">Election records are stored in the SDP-BESR Supabase database. Draft records are not treated as approved or official. Publication records an administrator action in the audit trail.</div>
+</section>
