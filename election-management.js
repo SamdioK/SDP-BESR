@@ -94,16 +94,29 @@
         <td>${esc(x.official_colour || "Not recorded")}</td><td>${status(x.registration_status)}</td>
       </tr>`),
       candidates: state.candidates.map(x => `<tr>
-        <td><b>${esc(x.candidate_name)}</b><div class="em-muted">${esc(x.running_mate || "")}</div></td>
-        <td>${esc(x.political_parties?.abbreviation || "Party not linked")} · ${esc(x.political_parties?.party_name || "")}</td>
-        <td>${esc(x.election_contests?.title || "Contest unavailable")}</td><td>${status(x.candidate_status)}</td>
+        <td>
+          <b>${esc(x.candidate_name)}</b>
+          <div class="em-muted">Deputy: ${esc(x.running_mate || "Not recorded")}</div>
+        </td>
+        <td>
+          <b>${esc(x.political_parties?.abbreviation || "Party not linked")}</b>
+          <div class="em-muted">${esc(x.political_parties?.party_name || "Party details unavailable")}</div>
+        </td>
+        <td>
+          ${esc(x.election_contests?.title || "Contest unavailable")}
+          <div class="em-muted">${esc(x.election_contests?.contest_type || "")}</div>
+        </td>
+        <td>
+          ${status(x.candidate_status)}
+          ${x.nomination_reference ? `<div class="em-muted"><a href="${esc(x.nomination_reference)}" target="_blank" rel="noopener noreferrer">INEC source ↗</a></div>` : ""}
+        </td>
       </tr>`)
     };
     const headers = {
       cycles: ["Election cycle", "Year", "Commencement", "Status", "Actions"],
       contests: ["Contest", "Constituency", "Election cycle", "Election date", "Status", "Actions"],
       parties: ["Political party", "Abbreviation", "Official colour", "Registration status"],
-      candidates: ["Candidate", "Political party", "Contest", "Candidate status"]
+      candidates: ["Governorship candidate / deputy", "Political party", "Election contest", "Status / INEC source"]
     };
     const data = rows[state.tab];
     if (data.length) {
