@@ -38,13 +38,13 @@ jobs:
           fi
 
       - name: Deploy camera-device-register
-        run: supabase functions deploy camera-device-register --project-ref "$SUPABASE_PROJECT_ID" --use-api
+        run: supabase functions deploy camera-device-register --project-ref "$SUPABASE_PROJECT_ID" --use-api --yes
 
       - name: Deploy camera-admin-manage
-        run: supabase functions deploy camera-admin-manage --project-ref "$SUPABASE_PROJECT_ID" --use-api
+        run: supabase functions deploy camera-admin-manage --project-ref "$SUPABASE_PROJECT_ID" --use-api --yes
 
       - name: Deploy camera-assignment-manage
-        run: supabase functions deploy camera-assignment-manage --project-ref "$SUPABASE_PROJECT_ID" --use-api
+        run: supabase functions deploy camera-assignment-manage --project-ref "$SUPABASE_PROJECT_ID" --use-api --yes
 
       - name: Deploy camera-heartbeat
-        run: supabase functions deploy camera-heartbeat --project-ref "$SUPABASE_PROJECT_ID" --use-api
+        run: supabase functions deploy camera-heartbeat --project-ref "$SUPABASE_PROJECT_ID" --use-api --yes
