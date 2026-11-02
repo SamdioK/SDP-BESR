@@ -8,3 +8,140 @@
 .em-actions{display:flex;gap:5px;flex-wrap:wrap}.em-action{border:1px solid #39695e;background:#123f38;color:#dceae0;border-radius:6px;padding:6px 8px;font-size:8px}.em-action.publish{border-color:#8b6435;color:#ffd09a;background:#382b20}.em-empty{padding:34px 15px;text-align:center;color:#9ab7a9;font-size:10px}.em-empty b{display:block;color:#edf4ef;font-size:12px;margin:8px 0}
 .em-modal{display:none;position:fixed;inset:0;z-index:55;background:#001c1be8;align-items:center;justify-content:center;padding:14px}.em-modal.open{display:flex}.em-modal-card{width:min(650px,100%);max-height:92vh;overflow:auto;background:#103b35;border:1px solid #397065;border-radius:13px;box-shadow:0 25px 70px #0009}.em-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;border-bottom:1px solid #2d5d53}.em-modal-head b{font-size:13px}.em-modal-body{padding:16px}.em-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.em-field{display:grid;gap:5px}.em-field.full{grid-column:1/-1}.em-field label{font-size:9px;color:#b8cec2;font-weight:700}.em-field input,.em-field select,.em-field textarea{width:100%;border:1px solid #39695e;background:#092d28;color:#f1f6f1;border-radius:7px;padding:10px;font-size:10px;min-height:38px}.em-field textarea{min-height:75px;resize:vertical}.em-help{font-size:8px;color:#91afa1;line-height:1.5}.em-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:13px 16px;border-top:1px solid #2d5d53}.em-secondary{border:1px solid #35675d;background:#123f38;color:#dceae0;border-radius:7px;padding:9px 12px;font-size:9px}.em-loading{padding:25px;text-align:center;color:#9bb8aa;font-size:10px}
 @media(max-width:650px){.em-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.em-alert{display:block}.em-alert b{display:block;margin-bottom:4px}.em-toolbar{align-items:flex-start}.em-tabs button{padding:8px 10px}.em-form-grid{grid-template-columns:1fr}.em-field.full{grid-column:auto}}
+
+/* RESPONSIVE ELECTION MANAGEMENT LAYOUT */
+#view-elections,
+#view-elections .em-workspace,
+#view-elections .em-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#view-elections .em-table-wrap {
+  overflow-x: auto;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+#view-elections .em-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+#view-elections .em-table th,
+#view-elections .em-table td {
+  overflow-wrap: anywhere;
+}
+
+#view-elections .em-table td:first-child {
+  min-width: 145px;
+}
+
+#view-elections .em-actions {
+  min-width: 78px;
+}
+
+/* DESKTOP: DISPLAY ALL COLUMNS */
+@media (min-width: 761px) {
+  #view-elections .em-table-wrap {
+    overflow-x: visible;
+  }
+
+  #view-elections .em-table th,
+  #view-elections .em-table td {
+    padding: 10px 7px;
+  }
+}
+
+/* MOBILE: DISPLAY RECORDS AS CARDS */
+@media (max-width: 760px) {
+  #view-elections .em-table-wrap {
+    overflow: visible;
+    padding: 0 10px 12px;
+  }
+
+  #view-elections .em-table,
+  #view-elections .em-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  #view-elections .em-table thead {
+    display: none;
+  }
+
+  #view-elections .em-table tbody tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 11px;
+    padding: 7px 10px;
+    border: 1px solid #2d6258;
+    border-radius: 9px;
+    background: linear-gradient(145deg, #123a34, #0b2e2a);
+  }
+
+  #view-elections .em-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px 2px;
+    border-bottom: 1px solid #28574e;
+    text-align: right;
+  }
+
+  #view-elections .em-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  #view-elections .em-table tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 34%;
+    color: #8eae9f;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  #view-elections .em-table tbody td:first-child {
+    display: block;
+    text-align: left;
+  }
+
+  #view-elections .em-table tbody td:first-child::before {
+    display: none;
+  }
+
+  #view-elections .em-table tbody td .em-muted {
+    display: block;
+    margin-top: 4px;
+    text-align: left;
+  }
+
+  #view-elections .em-table tbody td .em-actions {
+    justify-content: flex-end;
+  }
+
+  #view-elections .em-action {
+    padding: 8px 11px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 380px) {
+  #view-elections .em-toolbar {
+    flex-direction: column;
+  }
+
+  #view-elections .em-toolbar > button {
+    width: 100%;
+  }
+}
