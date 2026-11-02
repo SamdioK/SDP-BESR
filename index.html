@@ -718,6 +718,52 @@ body.sidebar-collapsed .content {
     height: 52px;
   }
 }
+
+/* SDP-BESR DRAGGABLE FLOATING NAVIGATION CONTROL */
+#menuBtn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: fixed !important;
+  top: 90px;
+  left: auto;
+  right: 18px;
+  z-index: 10050 !important;
+  width: 44px !important;
+  height: 44px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #e5a45d !important;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, #7136a5, #49246e) !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 5px 18px #0008 !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transition: background .2s, box-shadow .2s;
+}
+
+#menuBtn:active {
+  cursor: grabbing !important;
+}
+
+#menuBtn.dragging {
+  background: #ed8735 !important;
+  color: #092b29 !important;
+  box-shadow: 0 8px 24px #0009 !important;
+  transition: none !important;
+}
+
+@media (max-width: 900px) {
+  #menuBtn {
+    width: 46px !important;
+    height: 46px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -1193,37 +1239,179 @@ const electionSchedule={governorship:"2027-02-06T00:00:00+01:00",assembly:"2027-
 function renderCountdowns(){const root=document.getElementById("countdownGrid");root.innerHTML=Object.entries(electionNames).map(([key,name])=>{const target=electionSchedule[key];if(!target)return `<article class="countdown-card"><small>${name.toUpperCase()}</small><div class="countdown-units"><div><b>—</b><em>DAYS</em></div><div><b>—</b><em>HOURS</em></div><div><b>—</b><em>MINS</em></div><div><b>—</b><em>SECS</em></div></div><div class="countdown-status">Election date not configured</div></article>`;const diff=Math.max(0,new Date(target).getTime()-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff%86400000/3600000),mins=Math.floor(diff%3600000/60000),secs=Math.floor(diff%60000/1000);return `<article class="countdown-card"><small>${name.toUpperCase()}</small><div class="countdown-units"><div><b>${days}</b><em>DAYS</em></div><div><b>${String(hours).padStart(2,"0")}</b><em>HOURS</em></div><div><b>${String(mins).padStart(2,"0")}</b><em>MINS</em></div><div><b>${String(secs).padStart(2,"0")}</b><em>SECS</em></div></div><div class="countdown-status">${diff===0?"Scheduled time reached":"Polling day begins: "+new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Lagos",dateStyle:"medium",timeStyle:"short"}).format(new Date(target))}</div></article>`}).join("")}renderCountdowns();setInterval(renderCountdowns,1000);
 function showPage(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));document.getElementById("topTitle").textContent=TITLES[name]||"Command Centre";document.getElementById("sidebar").classList.remove("open");if(name==="geography")setTimeout(()=>{if(mapLarge)mapLarge.invalidateSize()},150);if(name==="overview")setTimeout(()=>{if(mapSmall)mapSmall.invalidateSize()},150);window.scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.go)));
+/* SDP-BESR DRAGGABLE SIDEBAR CONTROL */
+
 const menuButton = document.getElementById("menuBtn");
 const sidebar = document.getElementById("sidebar");
 
-menuButton.addEventListener("click", () => {
+const MENU_POSITION_KEY = "sdpBesrMenuPosition";
+
+let dragStarted = false;
+let moved = false;
+let startX = 0;
+let startY = 0;
+let originalX = 0;
+let originalY = 0;
+
+const clamp = (value, min, max) =>
+  Math.min(Math.max(value, min), max);
+
+function keepMenuInsideScreen(x, y) {
+  const maxX = window.innerWidth - menuButton.offsetWidth;
+  const maxY = window.innerHeight - menuButton.offsetHeight;
+
+  return {
+    x: clamp(x, 0, Math.max(0, maxX)),
+    y: clamp(y, 0, Math.max(0, maxY))
+  };
+}
+
+function saveMenuPosition() {
+  try {
+    localStorage.setItem(
+      MENU_POSITION_KEY,
+      JSON.stringify({
+        x: menuButton.offsetLeft,
+        y: menuButton.offsetTop
+      })
+    );
+  } catch (error) {
+    console.warn("Menu position could not be saved.", error);
+  }
+}
+
+function setMenuPosition(x, y, save = false) {
+  const position = keepMenuInsideScreen(x, y);
+
+  menuButton.style.left = position.x + "px";
+  menuButton.style.top = position.y + "px";
+  menuButton.style.right = "auto";
+
+  if (save) saveMenuPosition();
+}
+
+function restoreMenuPosition() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(MENU_POSITION_KEY) || "null"
+    );
+
+    if (
+      saved &&
+      Number.isFinite(saved.x) &&
+      Number.isFinite(saved.y)
+    ) {
+      setMenuPosition(saved.x, saved.y);
+      return;
+    }
+  } catch (error) {
+    console.warn("Saved menu position is unavailable.");
+  }
+
+  // Default position: upper-right corner.
+  setMenuPosition(
+    window.innerWidth - menuButton.offsetWidth - 18,
+    90
+  );
+}
+
+function updateMenuButton() {
+  const isDesktop = window.matchMedia("(min-width: 901px)").matches;
+
+  const isExpanded = isDesktop
+    ? !document.body.classList.contains("sidebar-collapsed")
+    : sidebar.classList.contains("open");
+
+  menuButton.textContent = isExpanded ? "‹" : "☰";
+
+  menuButton.setAttribute(
+    "aria-expanded",
+    String(isExpanded)
+  );
+
+  menuButton.title = isExpanded
+    ? "Minimise navigation — drag to reposition"
+    : "Restore navigation — drag to reposition";
+}
+
+menuButton.addEventListener("pointerdown", event => {
+  if (event.button !== undefined && event.button !== 0) return;
+
+  dragStarted = true;
+  moved = false;
+
+  startX = event.clientX;
+  startY = event.clientY;
+
+  originalX = menuButton.offsetLeft;
+  originalY = menuButton.offsetTop;
+
+  menuButton.classList.add("dragging");
+
+  menuButton.setPointerCapture(event.pointerId);
+});
+
+menuButton.addEventListener("pointermove", event => {
+  if (!dragStarted) return;
+
+  const dx = event.clientX - startX;
+  const dy = event.clientY - startY;
+
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    moved = true;
+  }
+
+  if (moved) {
+    setMenuPosition(originalX + dx, originalY + dy);
+  }
+});
+
+menuButton.addEventListener("pointerup", () => {
+  if (!dragStarted) return;
+
+  dragStarted = false;
+  menuButton.classList.remove("dragging");
+
+  if (moved) {
+    saveMenuPosition();
+    menuButton.dataset.dragged = "true";
+  }
+});
+
+menuButton.addEventListener("pointercancel", () => {
+  dragStarted = false;
+  menuButton.classList.remove("dragging");
+});
+
+menuButton.addEventListener("click", event => {
+  if (menuButton.dataset.dragged === "true") {
+    menuButton.dataset.dragged = "false";
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
   const isDesktop = window.matchMedia("(min-width: 901px)").matches;
 
   if (isDesktop) {
     document.body.classList.toggle("sidebar-collapsed");
-
-    const expanded =
-      !document.body.classList.contains("sidebar-collapsed");
-
-    menuButton.setAttribute("aria-expanded", String(expanded));
-    menuButton.title = expanded
-      ? "Minimise sidebar"
-      : "Restore sidebar";
-
   } else {
     sidebar.classList.toggle("open");
-
-    const expanded = sidebar.classList.contains("open");
-
-    menuButton.setAttribute("aria-expanded", String(expanded));
-    menuButton.title = expanded
-      ? "Close navigation"
-      : "Open navigation";
   }
 
-  // Allow dashboard components to adjust to the new screen width.
+  updateMenuButton();
   window.dispatchEvent(new Event("resize"));
 });
+
+window.addEventListener("resize", () => {
+  setMenuPosition(
+    menuButton.offsetLeft,
+    menuButton.offsetTop
+  );
+});
+
+restoreMenuPosition();
+updateMenuButton();
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove("show"),2800)}
 document.querySelectorAll("[data-toast]").forEach(b=>b.onclick=()=>toast(b.dataset.toast));document.getElementById("bellBtn").onclick=()=>showPage("notifications");
 const modal=document.getElementById("incidentModal");document.getElementById("openIncident").onclick=()=>modal.classList.add("open");["closeModal","cancelModal"].forEach(id=>document.getElementById(id).onclick=()=>modal.classList.remove("open"));modal.onclick=e=>{if(e.target===modal)modal.classList.remove("open")};document.getElementById("incidentForm").onsubmit=e=>{e.preventDefault();modal.classList.remove("open");toast("Preview only: no incident was saved or transmitted.")};
