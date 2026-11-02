@@ -647,6 +647,77 @@ button.ward-directory-item:hover {
 .em-actions{display:flex;gap:5px;flex-wrap:wrap}.em-action{border:1px solid #39695e;background:#123f38;color:#dceae0;border-radius:6px;padding:6px 8px;font-size:8px}.em-action.publish{border-color:#8b6435;color:#ffd09a;background:#382b20}.em-empty{padding:34px 15px;text-align:center;color:#9ab7a9;font-size:10px}.em-empty b{display:block;color:#edf4ef;font-size:12px;margin:8px 0}
 .em-modal{display:none;position:fixed;inset:0;z-index:55;background:#001c1be8;align-items:center;justify-content:center;padding:14px}.em-modal.open{display:flex}.em-modal-card{width:min(650px,100%);max-height:92vh;overflow:auto;background:#103b35;border:1px solid #397065;border-radius:13px;box-shadow:0 25px 70px #0009}.em-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;border-bottom:1px solid #2d5d53}.em-modal-head b{font-size:13px}.em-modal-body{padding:16px}.em-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.em-field{display:grid;gap:5px}.em-field.full{grid-column:1/-1}.em-field label{font-size:9px;color:#b8cec2;font-weight:700}.em-field input,.em-field select,.em-field textarea{width:100%;border:1px solid #39695e;background:#092d28;color:#f1f6f1;border-radius:7px;padding:10px;font-size:10px;min-height:38px}.em-field textarea{min-height:75px;resize:vertical}.em-help{font-size:8px;color:#91afa1;line-height:1.5}.em-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:13px 16px;border-top:1px solid #2d5d53}.em-secondary{border:1px solid #35675d;background:#123f38;color:#dceae0;border-radius:7px;padding:9px 12px;font-size:9px}.em-loading{padding:25px;text-align:center;color:#9bb8aa;font-size:10px}
 @media(max-width:650px){.em-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.em-alert{display:block}.em-alert b{display:block;margin-bottom:4px}.em-toolbar{align-items:flex-start}.em-tabs button{padding:8px 10px}.em-form-grid{grid-template-columns:1fr}.em-field.full{grid-column:auto}}
+
+/* SDP-BESR GLOBAL SIDEBAR MINIMISE / RESTORE */
+.sidebar,
+.main {
+  transition: transform .28s ease, margin-left .28s ease, width .28s ease;
+}
+
+/* Keep the navigation control available on desktop and mobile */
+.menu-btn {
+  display: inline-grid !important;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  width: 36px;
+  font-size: 19px;
+  border: 1px solid #397064;
+  border-radius: 8px;
+  background: #123d37;
+  color: #f2c18d;
+}
+
+/* Desktop and landscape: collapsed sidebar */
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-105%);
+}
+
+body.sidebar-collapsed .main {
+  margin-left: 0 !important;
+  width: 100%;
+}
+
+/* Allow the dashboard to use the expanded space */
+body.sidebar-collapsed .content {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Mobile and tablet navigation remains an overlay */
+@media (max-width: 900px) {
+  .main {
+    margin-left: 0 !important;
+  }
+
+  .sidebar {
+    transform: translateX(-105%);
+    box-shadow: 15px 0 45px #0008;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  body.sidebar-collapsed .sidebar {
+    transform: translateX(-105%);
+  }
+}
+
+/* Landscape phones and smaller displays */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sidebar {
+    overflow-y: auto;
+  }
+
+  .content {
+    padding: 12px 14px 25px;
+  }
+
+  .topbar {
+    height: 52px;
+  }
+}
 </style>
 </head>
 <body>
@@ -749,7 +820,13 @@ button.ward-directory-item:hover {
  <div class="side-bottom"><b>SDP Benue State</b>Election Monitoring · Incident Response<br>Results Management System<br>Interface preview · v0.2.6</div>
 </aside>
 <main class="main">
-<header class="topbar"><div class="top-left"><button class="menu-btn" id="menuBtn">☰</button><div><div class="eyebrow">Social Democratic Party · Benue State</div><div class="top-title" id="topTitle">Command Centre</div></div></div><div class="top-actions"><span class="live-pill">PREVIEW ENVIRONMENT</span><button class="icon-btn" id="themeBtn" title="Toggle appearance">◐</button><button class="icon-btn" id="bellBtn" title="Notifications">♧</button><div class="avatar">SA</div></div></header>
+<header class="topbar">
+<div class="top-left">
+<button class="menu-btn" id="menuBtn"
+  type="button"
+  aria-label="Minimise or restore navigation"
+  aria-expanded="true"
+  title="Minimise or restore sidebar">☰</button><div><div class="eyebrow">Social Democratic Party · Benue State</div><div class="top-title" id="topTitle">Command Centre</div></div></div><div class="top-actions"><span class="live-pill">PREVIEW ENVIRONMENT</span><button class="icon-btn" id="themeBtn" title="Toggle appearance">◐</button><button class="icon-btn" id="bellBtn" title="Notifications">♧</button><div class="avatar">SA</div></div></header>
 <div class="content">
 <section class="view active" id="view-overview">
  <div class="welcome"><div><div class="eyebrow">Election operations overview</div><h1>Benue State Situation Room</h1><div class="subtitle">A unified operational picture of field activity, polling-unit coverage, incident response and election information.</div></div><div class="date" id="date"></div></div>
@@ -1116,7 +1193,37 @@ const electionSchedule={governorship:"2027-02-06T00:00:00+01:00",assembly:"2027-
 function renderCountdowns(){const root=document.getElementById("countdownGrid");root.innerHTML=Object.entries(electionNames).map(([key,name])=>{const target=electionSchedule[key];if(!target)return `<article class="countdown-card"><small>${name.toUpperCase()}</small><div class="countdown-units"><div><b>—</b><em>DAYS</em></div><div><b>—</b><em>HOURS</em></div><div><b>—</b><em>MINS</em></div><div><b>—</b><em>SECS</em></div></div><div class="countdown-status">Election date not configured</div></article>`;const diff=Math.max(0,new Date(target).getTime()-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff%86400000/3600000),mins=Math.floor(diff%3600000/60000),secs=Math.floor(diff%60000/1000);return `<article class="countdown-card"><small>${name.toUpperCase()}</small><div class="countdown-units"><div><b>${days}</b><em>DAYS</em></div><div><b>${String(hours).padStart(2,"0")}</b><em>HOURS</em></div><div><b>${String(mins).padStart(2,"0")}</b><em>MINS</em></div><div><b>${String(secs).padStart(2,"0")}</b><em>SECS</em></div></div><div class="countdown-status">${diff===0?"Scheduled time reached":"Polling day begins: "+new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Lagos",dateStyle:"medium",timeStyle:"short"}).format(new Date(target))}</div></article>`}).join("")}renderCountdowns();setInterval(renderCountdowns,1000);
 function showPage(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));document.getElementById("topTitle").textContent=TITLES[name]||"Command Centre";document.getElementById("sidebar").classList.remove("open");if(name==="geography")setTimeout(()=>{if(mapLarge)mapLarge.invalidateSize()},150);if(name==="overview")setTimeout(()=>{if(mapSmall)mapSmall.invalidateSize()},150);window.scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.go)));
-document.getElementById("menuBtn").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+const menuButton = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+
+menuButton.addEventListener("click", () => {
+  const isDesktop = window.matchMedia("(min-width: 901px)").matches;
+
+  if (isDesktop) {
+    document.body.classList.toggle("sidebar-collapsed");
+
+    const expanded =
+      !document.body.classList.contains("sidebar-collapsed");
+
+    menuButton.setAttribute("aria-expanded", String(expanded));
+    menuButton.title = expanded
+      ? "Minimise sidebar"
+      : "Restore sidebar";
+
+  } else {
+    sidebar.classList.toggle("open");
+
+    const expanded = sidebar.classList.contains("open");
+
+    menuButton.setAttribute("aria-expanded", String(expanded));
+    menuButton.title = expanded
+      ? "Close navigation"
+      : "Open navigation";
+  }
+
+  // Allow dashboard components to adjust to the new screen width.
+  window.dispatchEvent(new Event("resize"));
+});
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove("show"),2800)}
 document.querySelectorAll("[data-toast]").forEach(b=>b.onclick=()=>toast(b.dataset.toast));document.getElementById("bellBtn").onclick=()=>showPage("notifications");
 const modal=document.getElementById("incidentModal");document.getElementById("openIncident").onclick=()=>modal.classList.add("open");["closeModal","cancelModal"].forEach(id=>document.getElementById(id).onclick=()=>modal.classList.remove("open"));modal.onclick=e=>{if(e.target===modal)modal.classList.remove("open")};document.getElementById("incidentForm").onsubmit=e=>{e.preventDefault();modal.classList.remove("open");toast("Preview only: no incident was saved or transmitted.")};
