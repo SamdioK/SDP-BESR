@@ -106,9 +106,38 @@
       candidates: ["Candidate", "Political party", "Contest", "Candidate status"]
     };
     const data = rows[state.tab];
-    $("emContent").innerHTML = data.length
-      ? `<div class="em-table-wrap"><table class="em-table"><thead><tr>${headers[state.tab].map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${data.join("")}</tbody></table></div>`
-      : `<div class="em-empty">▤<b>No ${esc(state.tab)} have been configured</b>Use “${esc(config.button)}” to create the first record. Saved records will appear here.</div>`;
+    if (data.length) {
+      $("emContent").innerHTML = `
+        <div class="em-table-wrap">
+          <table class="em-table">
+            <thead>
+              <tr>
+                ${headers[state.tab].map(h => `<th>${h}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>${data.join("")}</tbody>
+          </table>
+        </div>`;
+
+      // Add column labels for the mobile card layout.
+      $("emContent").querySelectorAll("tbody tr").forEach(row => {
+        row.querySelectorAll("td").forEach((cell, index) => {
+          cell.setAttribute(
+            "data-label",
+            headers[state.tab][index] || ""
+          );
+        });
+      });
+
+    } else {
+      $("emContent").innerHTML = `
+        <div class="em-empty">
+          ▤
+          <b>No ${esc(state.tab)} have been configured</b>
+          Use “${esc(config.button)}” to create the first record.
+          Saved records will appear here.
+        </div>`;
+    }
   }
 
   function field(label, name, type = "text", required = false, options = null, full = false, help = "") {
