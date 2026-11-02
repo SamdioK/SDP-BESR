@@ -197,9 +197,31 @@
   async function submitForm(event) {
     event.preventDefault();
     const kind = $("emForm").dataset.kind;
-    const formData = Object.fromEntries(new FormData($("emForm")).entries());
-    const table = {cycles:"election_cycles",contests:"election_contests",parties:"political_parties",candidates:"election_candidates"}[kind];
-    const payload = {...formData, created_by: state.user?.id || null};
+    const formData = Object.fromEntries(
+      new FormData($("emForm")).entries()
+    );
+
+    // Convert blank optional fields to database NULL.
+    // This is particularly important for PostgreSQL DATE columns.
+    for (const key of Object.keys(formData)) {
+      if (typeof formData[key] === "string") {
+        formData[key] = formData[key].trim() === ""
+          ? null
+          : formData[key].trim();
+      }
+    }
+
+    const table = {
+      cycles: "election_cycles",
+      contests: "election_contests",
+      parties: "political_parties",
+      candidates: "election_candidates"
+    }[kind];
+
+    const payload = {
+      ...formData,
+      created_by: state.user?.id || null
+    };
     if (kind === "cycles") {
       payload.election_year = Number(payload.election_year);
       payload.status = "draft";
