@@ -636,6 +636,17 @@ button.ward-directory-item:hover {
   font-weight:800;
 }
 #sdpAuthMessage{line-height:1.5}
+
+/* SDP-BESR Election Management v1 */
+.em-alert{display:flex;gap:10px;padding:12px 14px;border:1px solid #86582f;background:#392a20;color:#f2c18d;border-radius:9px;margin-bottom:13px;font-size:10px;line-height:1.55}.em-alert b{white-space:nowrap;color:#ffd2a3}
+.em-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:13px}.em-stats article{border:1px solid #2d6258;background:linear-gradient(145deg,#143f39,#0e332f);border-radius:10px;padding:12px}.em-stats small{display:block;color:#9eb9ac;font-size:9px;margin-bottom:7px}.em-stats b{font-size:23px;color:#fff;font-variant-numeric:tabular-nums}
+.em-workspace{padding:0;overflow:hidden}.em-tabs{display:flex;gap:5px;overflow-x:auto;padding:12px;border-bottom:1px solid #2b5b51}.em-tabs button{flex:0 0 auto;border:1px solid #37685d;background:#0d332e;color:#bcd1c5;border-radius:7px;padding:9px 12px;font-size:10px}.em-tabs button.active{background:linear-gradient(120deg,#7136a5,#51267c);border-color:#a45bd0;color:#fff;box-shadow:inset 0 -2px var(--orange)}
+.em-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px}.em-toolbar b{font-size:12px}.em-toolbar p{font-size:9px;color:#95b2a5;margin:4px 0 0}.em-notice{display:none;margin:0 15px 12px;padding:9px 11px;border-radius:7px;font-size:10px;line-height:1.5}.em-notice.show{display:block}.em-notice.ok{background:#123d30;border:1px solid #39765a;color:#a9e4c0}.em-notice.err{background:#432522;border:1px solid #98514b;color:#ffc0b8}
+.em-table-wrap{overflow-x:auto;padding:0 15px 15px}.em-table{width:100%;border-collapse:collapse;min-width:650px}.em-table th,.em-table td{text-align:left;padding:11px 9px;border-bottom:1px solid #28574e;font-size:10px;vertical-align:top}.em-table th{color:#8eae9f;text-transform:uppercase;letter-spacing:.08em;font-size:8px}.em-table td{color:#e2eee6}.em-muted{color:#9bb7aa!important;font-size:9px!important}
+.em-status{display:inline-block;border:1px solid #6d5790;background:#302447;color:#dfc5f4;border-radius:20px;padding:4px 8px;font-size:8px;white-space:nowrap;text-transform:uppercase}.em-status.published,.em-status.active,.em-status.nominated{border-color:#39765a;background:#123d30;color:#a9e4c0}.em-status.completed,.em-status.archived,.em-status.withdrawn{border-color:#536c66;background:#263b37;color:#c3d4cb}
+.em-actions{display:flex;gap:5px;flex-wrap:wrap}.em-action{border:1px solid #39695e;background:#123f38;color:#dceae0;border-radius:6px;padding:6px 8px;font-size:8px}.em-action.publish{border-color:#8b6435;color:#ffd09a;background:#382b20}.em-empty{padding:34px 15px;text-align:center;color:#9ab7a9;font-size:10px}.em-empty b{display:block;color:#edf4ef;font-size:12px;margin:8px 0}
+.em-modal{display:none;position:fixed;inset:0;z-index:55;background:#001c1be8;align-items:center;justify-content:center;padding:14px}.em-modal.open{display:flex}.em-modal-card{width:min(650px,100%);max-height:92vh;overflow:auto;background:#103b35;border:1px solid #397065;border-radius:13px;box-shadow:0 25px 70px #0009}.em-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;border-bottom:1px solid #2d5d53}.em-modal-head b{font-size:13px}.em-modal-body{padding:16px}.em-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.em-field{display:grid;gap:5px}.em-field.full{grid-column:1/-1}.em-field label{font-size:9px;color:#b8cec2;font-weight:700}.em-field input,.em-field select,.em-field textarea{width:100%;border:1px solid #39695e;background:#092d28;color:#f1f6f1;border-radius:7px;padding:10px;font-size:10px;min-height:38px}.em-field textarea{min-height:75px;resize:vertical}.em-help{font-size:8px;color:#91afa1;line-height:1.5}.em-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:13px 16px;border-top:1px solid #2d5d53}.em-secondary{border:1px solid #35675d;background:#123f38;color:#dceae0;border-radius:7px;padding:9px 12px;font-size:9px}.em-loading{padding:25px;text-align:center;color:#9bb8aa;font-size:10px}
+@media(max-width:650px){.em-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.em-alert{display:block}.em-alert b{display:block;margin-bottom:4px}.em-toolbar{align-items:flex-start}.em-tabs button{padding:8px 10px}.em-form-grid{grid-template-columns:1fr}.em-field.full{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -887,7 +898,55 @@ button.ward-directory-item:hover {
   </div>
 </section>
 <p class="panel-sub" style="margin-top:13px">Boundary data: geoBoundaries, based on GRID3 Nigeria State and Local Government Area boundaries, 2022. CC BY 4.0. <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener" style="color:#eab36c">Source and attribution</a>.</p></div></section>
-<section class="view" id="view-elections"><div class="view-head"><div><div class="eyebrow">Configuration</div><h1>Election management</h1><div class="subtitle">Configure election cycles, contests, parties and candidates.</div></div><button class="primary" data-toast="Election configuration will be enabled after administrator setup.">＋ Configure election</button></div><div class="panel"><div class="empty">▤<b>Election workspace ready for configuration</b><p>Governorship, senatorial, federal constituency and State House of Assembly contests will be configured here. Dates must be checked against official INEC announcements.</p></div></div></section>
+<section class="view" id="view-elections">
+ <div class="view-head">
+  <div>
+   <div class="eyebrow">Configuration · Election management</div>
+   <h1>Election management</h1>
+   <div class="subtitle">Create and maintain election cycles, contests, participating parties and candidates.</div>
+  </div>
+  <button class="primary" id="emAddRecord">＋ Configure election</button>
+ </div>
+
+ <div class="em-alert">
+  <b>Configuration control</b>
+  <span>Only authorised administrators can create or publish election records. Confirm all election dates, constituency boundaries and candidate details against official INEC records before publication.</span>
+ </div>
+
+ <div class="em-stats" id="emStats">
+  <article><small>Election cycles</small><b id="emCycleCount">—</b></article>
+  <article><small>Contests</small><b id="emContestCount">—</b></article>
+  <article><small>Political parties</small><b id="emPartyCount">—</b></article>
+  <article><small>Candidates</small><b id="emCandidateCount">—</b></article>
+ </div>
+
+ <div class="panel em-workspace">
+  <div class="em-tabs" role="tablist">
+   <button class="active" data-em-tab="cycles">Election cycles</button>
+   <button data-em-tab="contests">Contests</button>
+   <button data-em-tab="parties">Political parties</button>
+   <button data-em-tab="candidates">Candidates</button>
+  </div>
+
+  <div class="em-toolbar">
+   <div>
+    <b id="emSectionTitle">Election cycles</b>
+    <p id="emSectionHint">Create and manage electoral cycles.</p>
+   </div>
+   <button class="primary" id="emCreate">＋ Add election cycle</button>
+  </div>
+
+  <div id="emNotice" class="em-notice" role="status" aria-live="polite"></div>
+  <div id="emContent">
+   <div class="empty">Loading election configuration…</div>
+  </div>
+ </div>
+
+ <div class="em-footnote">
+  Election records are stored in the SDP-BESR Supabase database.
+  Draft records are not treated as approved or official.
+ </div>
+</section>
 <section class="view" id="view-personnel"><div class="view-head"><div><div class="eyebrow">Field operations</div><h1>Field personnel</h1><div class="subtitle">Manage coordinators, agents, assignments and attendance.</div></div><button class="primary" data-toast="Personnel registration will be enabled after secure authentication is configured.">＋ Register personnel</button></div><div class="panel"><div class="empty">♙<b>No personnel records connected</b><p>Agent profiles, roles, geographic jurisdictions and check-ins will appear after secure personnel management is implemented.</p></div></div></section>
 <section class="view" id="view-polling"><div class="view-head"><div><div class="eyebrow">Field reporting</div><h1>Polling-unit reports</h1><div class="subtitle">Monitor opening, accreditation, voting, closing and counting reports.</div></div><button class="primary" data-toast="Polling-unit reporting will be implemented in the field operations stage.">＋ New field report</button></div><div class="panel"><div class="empty">▣<b>Polling-unit reporting centre</b><p>Reports will be linked to verified polling-unit records, authorised agents, reporting windows and evidence.</p></div></div></section>
 <section class="view" id="view-incidents"><div class="view-head"><div><div class="eyebrow">Incident response</div><h1>Incident management</h1><div class="subtitle">Receive, verify, assign, escalate and resolve field incidents.</div></div><button class="primary" id="openIncident">＋ Report incident</button></div><div class="panel"><div class="notice">Protect sensitive incident details and identities with role-based access. Unverified allegations must never be presented as established facts.</div><div class="table-wrap"><table class="data-table"><thead><tr><th>Reference</th><th>Category</th><th>Location</th><th>Severity</th><th>Status</th><th>Reported</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;color:#8eac9f;padding:30px">No incident records connected.</td></tr></tbody></table></div></div></section>
@@ -3066,4 +3125,24 @@ document.querySelectorAll("[data-election]").forEach(btn=>btn.addEventListener("
 
 })();
 </script>
+<div class="em-modal" id="emModal" aria-hidden="true">
+ <div class="em-modal-card" role="dialog" aria-modal="true" aria-labelledby="emModalTitle">
+
+  <div class="em-modal-head">
+   <b id="emModalTitle">Configure election</b>
+   <button class="icon-btn" type="button" id="emClose" aria-label="Close">✕</button>
+  </div>
+
+  <form id="emForm">
+   <div class="em-modal-body" id="emFormBody"></div>
+
+   <div class="em-modal-foot">
+    <button class="em-secondary" type="button" id="emCancel">Cancel</button>
+    <button class="primary" type="submit" id="emSave">Save draft</button>
+   </div>
+  </form>
+
+ </div>
+</div>
+<script src="election-management.js"></script>
 </body></html>
