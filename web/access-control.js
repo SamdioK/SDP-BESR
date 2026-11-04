@@ -154,19 +154,61 @@
     const users = data.users || [];
     if (!users.length) { rows.textContent = "No account requests found."; return; }
 
+    // Load the complete verified Benue geographical directory.
+    // Supabase returns a limited number of rows per request,
+    // so retrieve the directory in batches.
+
     let geographyRows = [];
+    let geographyLoadError = null;
+
     try {
-      const { data: geo, error: geoError } = await client
-        .from("benue_polling_units")
-        .select("lga_name,ward_code,ward_name,full_code,pu_name,pu_code")
-        .eq("verification_status", "verified")
-        .order("lga_name", { ascending: true })
-        .order("ward_code", { ascending: true })
-        .order("pu_code", { ascending: true });
-      if (geoError) throw geoError;
-      geographyRows = geo || [];
-    } catch (e) {
-      console.error("Could not load verified polling-unit directory:", e);
+      const PAGE_SIZE = 1000;
+      let offset = 0;
+      let keepLoading = true;
+
+      while (keepLoading) {
+        const { data: geo, error: geoError } = await client
+          .from("benue_polling_units")
+          .select(
+            "lga_name,ward_code,ward_name,full_code,pu_name,pu_code"
+          )
+          .eq("verification_status", "verified")
+          .order("lga_name", { ascending: true })
+          .order("ward_code", { ascending: true })
+          .order("pu_code", { ascending: true })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (geoError) throw geoError;
+
+        const batch = geo || [];
+
+        geographyRows.push(...batch);
+
+        if (batch.length < PAGE_SIZE) {
+          keepLoading = false;
+        } else {
+          offset += PAGE_SIZE;
+        }
+      }
+
+      console.log(
+        "Complete verified geographical directory loaded:",
+        geographyRows.length,
+        "polling-unit records"
+      );
+
+      if (!geographyRows.length) {
+        throw new Error(
+          "No verified polling-unit records were returned."
+        );
+      }
+
+    } catch (geoError) {
+      geographyLoadError = geoError;
+      console.error(
+        "Geographical directory loading failed:",
+        geoError
+      );
     }
 
     rows.innerHTML = users.map(u => `
