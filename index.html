@@ -829,20 +829,51 @@ body.sidebar-collapsed .content {
   </div>
 </div>
 <div id="sdpAuthGate">
-  <form id="sdpAuthForm" class="sdp-auth-card">
+  <div class="sdp-auth-card">
     <img src="assets/sdp-logo.jpg" alt="SDP Logo" width="65">
-    <h2>SDP-BESR Administrator Login</h2>
-    <p>Authorised platform administrators only.</p>
+    <h2>SDP-BESR Secure Access</h2>
+    <p>Sign in with an approved account or submit an access request.</p>
 
-    <label for="sdpAuthEmail">Email Address</label>
-    <input id="sdpAuthEmail" type="email" required autocomplete="username">
+    <div id="sdpLoginPanel">
+      <form id="sdpAuthForm">
+        <label for="sdpAuthEmail">Email Address</label>
+        <input id="sdpAuthEmail" type="email" required autocomplete="username">
 
-    <label for="sdpAuthPassword">Password</label>
-    <input id="sdpAuthPassword" type="password" required autocomplete="current-password">
+        <label for="sdpAuthPassword">Password</label>
+        <input id="sdpAuthPassword" type="password" required autocomplete="current-password">
 
-    <button id="sdpAuthSubmit" type="submit">Sign In</button>
-    <p id="sdpAuthMessage" role="status"></p>
-  </form>
+        <button id="sdpAuthSubmit" type="submit">Sign In</button>
+      </form>
+
+      <button id="sdpShowRequest" type="button" class="secondary" style="width:100%;margin-top:10px">
+        Request an account
+      </button>
+    </div>
+
+    <div id="sdpRequestPanel" hidden>
+      <label for="sdpRequestName">Full Name</label>
+      <input id="sdpRequestName" type="text" autocomplete="name" required>
+
+      <label for="sdpRequestEmail">Email Address</label>
+      <input id="sdpRequestEmail" type="email" autocomplete="email" required>
+
+      <label for="sdpRequestPassword">Create Password (minimum 10 characters)</label>
+      <input id="sdpRequestPassword" type="password" minlength="10" autocomplete="new-password" required>
+
+      <label for="sdpRequestConfirm">Confirm Password</label>
+      <input id="sdpRequestConfirm" type="password" minlength="10" autocomplete="new-password" required>
+
+      <button id="sdpRequestAccess" type="button" style="width:100%;padding:12px;margin-top:18px;border:0;border-radius:7px;background:#ed8735;color:#1d211c;font-weight:800">
+        Submit Access Request
+      </button>
+
+      <button id="sdpBackToLogin" type="button" class="secondary" style="width:100%;margin-top:9px">
+        Back to Sign In
+      </button>
+    </div>
+
+    <p id="sdpAuthMessage" role="status" aria-live="polite"></p>
+  </div>
 </div>
 
 <div class="app" id="sdpProtectedApp" style="visibility:hidden">
@@ -3321,105 +3352,14 @@ document.querySelectorAll("[data-election]").forEach(btn=>btn.addEventListener("
   const SUPABASE_KEY =
     "sb_publishable_3R6ExeGg6ZTR6gQKKhPDvA_xvlSwme1";
 
-  const client = window.supabase.createClient(
+  window.sdpSupabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
-
-  window.sdpSupabase = client;
-
-  const gate = document.getElementById("sdpAuthGate");
-  const app = document.getElementById("sdpProtectedApp");
-  const form = document.getElementById("sdpAuthForm");
-  const message = document.getElementById("sdpAuthMessage");
-  const submit = document.getElementById("sdpAuthSubmit");
-
-  function lockApp() {
-    app.style.visibility = "hidden";
-    gate.style.display = "flex";
-  }
-
-  function showMessage(text, colour) {
-    message.textContent = text;
-    message.style.color = colour || "#ffc38e";
-  }
-
-  async function verifyAdministrator() {
-    lockApp();
-    showMessage("Verifying administrator permissions...");
-
-    const { data, error } = await client.rpc("is_gps_admin");
-
-    if (error || data !== true) {
-      await client.auth.signOut();
-      showMessage(
-        error
-          ? "Administrator verification failed: " + error.message
-          : "This account is not an authorised platform administrator.",
-        "#ffaaa4"
-      );
-      return;
-    }
-
-    gate.style.display = "none";
-    app.style.visibility = "visible";
-    showMessage("Administrator verified.", "#9ce0bd");
-  }
-
-  form.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    submit.disabled = true;
-    submit.textContent = "Signing in...";
-
-    try {
-      const email =
-        document.getElementById("sdpAuthEmail").value.trim();
-
-      const password =
-        document.getElementById("sdpAuthPassword").value;
-
-      const { error } = await client.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      await verifyAdministrator();
-
-    } catch (error) {
-      showMessage(error.message, "#ffaaa4");
-    } finally {
-      submit.disabled = false;
-      submit.textContent = "Sign In";
-    }
-  });
-
-  client.auth.onAuthStateChange(function (event) {
-    if (event === "SIGNED_OUT") {
-      lockApp();
-      form.reset();
-      showMessage("You have signed out.");
-    }
-  });
-
-  client.auth.getSession().then(async function ({ data, error }) {
-    if (error) {
-      lockApp();
-      showMessage(error.message, "#ffaaa4");
-      return;
-    }
-
-    if (data.session) {
-      await verifyAdministrator();
-    } else {
-      lockApp();
-    }
-  });
-
 })();
 </script>
+
+<script src="web/access-control.js"></script>
 <div class="em-modal" id="emModal" aria-hidden="true">
  <div class="em-modal-card" role="dialog" aria-modal="true" aria-labelledby="emModalTitle">
 
