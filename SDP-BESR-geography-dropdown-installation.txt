@@ -1,0 +1,140 @@
+SDP-BESR GEOGRAPHICAL DROPDOWN PATCH
+
+GitHub rejected direct file updates with HTTP 403. No repository files were changed.
+Apply these edits to main; do not rerun database migrations.
+
+1) web/access-control.js
+
+Replace the manual input:
+<input data-scope-value placeholder="LGA / Ward / PU code (if required)" ...>
+
+with:
+<div data-geography style="display:flex;gap:7px;flex-wrap:wrap">
+<select data-lga disabled><option value="">Loading LGAs...</option></select>
+<select data-ward disabled><option value="">Select ward</option></select>
+<select data-pu disabled><option value="">Select polling unit</option></select>
+</div>
+
+Before `rows.innerHTML = users.map(u => \`` insert:
+    let geographyRows = [];
+    try {
+      const { data: geo, error: geoError } = await client
+        .from("benue_polling_units")
+        .select("lga_name,ward_code,ward_name,full_code,pu_name,pu_code")
+        .eq("verification_status", "verified")
+        .order("lga_name", { ascending: true })
+        .order("ward_code", { ascending: true })
+        .order("pu_code", { ascending: true });
+      if (geoError) throw geoError;
+      geographyRows = geo || [];
+    } catch (e) {
+      console.error("Could not load verified polling-unit directory:", e);
+    }
+
+Inside `rows.querySelectorAll("article").forEach((card, index) => { ... })`,
+immediately before `card.querySelectorAll("button[data-action]")`, insert:
+      const scopeSelect = card.querySelector("[data-scope]");
+      const lgaSelect = card.querySelector("[data-lga]");
+      const wardSelect = card.querySelector("[data-ward]");
+      const puSelect = card.querySelector("[data-pu]");
+      const lgas = [...new Set(geographyRows.map(x => x.lga_name).filter(Boolean))];
+      lgaSelect.innerHTML = '<option value="">Select LGA</option>' +
+        lgas.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+      lgaSelect.disabled = false;
+
+      function fillWards() {
+        const found = new Map();
+        geographyRows.filter(x => x.lga_name === lgaSelect.value).forEach(x => {
+          found.set(String(x.ward_code), x.ward_name);
+        });
+        wardSelect.innerHTML = '<option value="">Select ward</option>' +
+          [...found].map(([code,name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)} (${escapeHtml(code)})</option>`).join("");
+        wardSelect.disabled = !lgaSelect.value;
+        puSelect.innerHTML = '<option value="">Select polling unit</option>';
+        puSelect.disabled = true;
+      }
+      function fillPollingUnits() {
+        const units = geographyRows.filter(x =>
+          x.lga_name === lgaSelect.value && String(x.ward_code) === wardSelect.value);
+        puSelect.innerHTML = '<option value="">Select polling unit</option>' +
+          units.map(x => `<option value="${escapeHtml(x.full_code)}">${escapeHtml(x.pu_name || x.pu_code || x.full_code)} — ${escapeHtml(x.full_code)}</option>`).join("");
+        puSelect.disabled = !wardSelect.value;
+      }
+      lgaSelect.addEventListener("change", fillWards);
+      wardSelect.addEventListener("change", fillPollingUnits);
+      scopeSelect.addEventListener("change", () => {
+        const state = scopeSelect.value === "state";
+        lgaSelect.hidden = wardSelect.hidden = puSelect.hidden = state;
+        if (state) { lgaSelect.value = ""; fillWards(); }
+      });
+      scopeSelect.dispatchEvent(new Event("change"));
+
+Replace the old `[data-scope-value]` logic with:
+          const lga_name = lgaSelect.value;
+          const ward_code = wardSelect.value;
+          const full_code = puSelect.value;
+          let scope_value = "";
+          if (scope_type === "lga") scope_value = lga_name;
+          if (scope_type === "ward") scope_value = lga_name && ward_code ? `${lga_name}|${ward_code}` : "";
+          if (scope_type === "polling_unit") scope_value = full_code;
+          if (action === "approve" && scope_type !== "state" && !scope_value) {
+            alert("Select the required geography from the verified directory.");
+            return;
+          }
+
+Change the function invocation body to:
+body: { action, user_id: user.user_id, role, scope_type, scope_value, lga_name, ward_code, full_code }
+
+2) supabase/functions/sdp-access-admin/index.ts
+
+In the approve block, replace browser-provided scope-value validation with server validation.
+After validating `role` and `scopeType`, derive these values:
+      const lgaName = String(body.lga_name || "").trim();
+      const wardCode = String(body.ward_code || "").trim();
+      const fullCode = String(body.full_code || "").trim();
+      let scopeValue: string | null = null;
+
+Then validate using the service-role `admin` client:
+      if (scopeType === "lga") {
+        if (!lgaName) return json({ error: "Select an LGA." }, 400);
+        const { data, error } = await admin.from("benue_polling_units")
+          .select("lga_name").eq("verification_status", "verified")
+          .eq("lga_name", lgaName).limit(1);
+        if (error) throw error;
+        if (!data?.length) return json({ error: "LGA not found in verified directory." }, 400);
+        scopeValue = lgaName;
+      } else if (scopeType === "ward") {
+        if (!lgaName || !wardCode) return json({ error: "Select LGA and ward." }, 400);
+        const { data, error } = await admin.from("benue_polling_units")
+          .select("lga_name,ward_code").eq("verification_status", "verified")
+          .eq("lga_name", lgaName).eq("ward_code", wardCode).limit(1);
+        if (error) throw error;
+        if (!data?.length) return json({ error: "Ward does not match selected LGA." }, 400);
+        scopeValue = `${lgaName}|${wardCode}`;
+      } else if (scopeType === "polling_unit") {
+        if (!lgaName || !wardCode || !fullCode) return json({ error: "Select LGA, ward and polling unit." }, 400);
+        const { data, error } = await admin.from("benue_polling_units")
+          .select("full_code").eq("verification_status", "verified")
+          .eq("lga_name", lgaName).eq("ward_code", wardCode)
+          .eq("full_code", fullCode).limit(1);
+        if (error) throw error;
+        if (!data?.length) return json({ error: "Polling unit does not match selected LGA and ward." }, 400);
+        scopeValue = fullCode;
+      } else if (scopeType !== "state") {
+        return json({ error: "Invalid scope." }, 400);
+      }
+
+In the user-access update and audit insert, set `scope_value: scopeValue`.
+Do not use the client-supplied `body.scope_value` for persistence.
+
+3) Deploy and test
+
+- Commit both files to main.
+- The existing GitHub Actions workflow should deploy the function on push, or run it manually:
+  Actions → Deploy SDP-BESR Access Administration Function → Run workflow.
+- Wait for success before testing.
+- In User Access Management, test State, LGA, Ward and Polling Unit selections.
+- Verify `scope_type` and `scope_value` in public.sdp_user_access.
+- Never assign gps_admin or super_admin through this screen.
+
+Note: If the browser cannot read benue_polling_units because of RLS, the dropdown fetch will fail. In that case, add a read-only authenticated policy or move directory retrieval into a dedicated Edge Function; do not expose the service-role key in the browser.
