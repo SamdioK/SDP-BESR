@@ -154,6 +154,21 @@
     const users = data.users || [];
     if (!users.length) { rows.textContent = "No account requests found."; return; }
 
+    let geographyRows = [];
+    try {
+      const { data: geo, error: geoError } = await client
+        .from("benue_polling_units")
+        .select("lga_name,ward_code,ward_name,full_code,pu_name,pu_code")
+        .eq("verification_status", "verified")
+        .order("lga_name", { ascending: true })
+        .order("ward_code", { ascending: true })
+        .order("pu_code", { ascending: true });
+      if (geoError) throw geoError;
+      geographyRows = geo || [];
+    } catch (e) {
+      console.error("Could not load verified polling-unit directory:", e);
+    }
+
     rows.innerHTML = users.map(u => `
       <article style="border:1px solid #32665b;border-radius:9px;padding:12px;margin:8px 0;background:#0c302c">
         <b>${escapeHtml(u.full_name || "Name not supplied")}</b>
@@ -163,7 +178,11 @@
             <option value="situation_room_admin">Situation Room Admin</option><option value="camera_admin">Camera Admin</option><option value="camera_operator">Camera Operator</option><option value="lga_coordinator">LGA Coordinator</option><option value="ward_officer">Ward Officer</option><option value="incident_verifier">Incident Verifier</option><option value="evidence_officer">Evidence Officer</option><option value="legal_officer">Legal Officer</option><option value="read_only">Read Only</option>
           </select>
           <select data-scope style="padding:8px;background:#092d28;color:white;border:1px solid #39695e;border-radius:6px"><option value="state">Statewide</option><option value="lga">LGA</option><option value="ward">Ward</option><option value="polling_unit">Polling Unit</option></select>
-          <input data-scope-value placeholder="LGA / Ward / PU code (if required)" style="padding:8px;min-width:180px;background:#092d28;color:white;border:1px solid #39695e;border-radius:6px">
+          <div data-geography style="display:flex;gap:7px;flex-wrap:wrap">
+            <select data-lga disabled><option value="">Loading LGAs...</option></select>
+            <select data-ward disabled><option value="">Select ward</option></select>
+            <select data-pu disabled><option value="">Select polling unit</option></select>
+          </div>
           <button data-action="approve" class="primary">Approve</button>
           <button data-action="suspend" class="secondary">Suspend</button>
           <button data-action="reinstate" class="secondary">Reinstate</button>
@@ -172,19 +191,62 @@
 
     rows.querySelectorAll("article").forEach((card, index) => {
       const user = users[index];
+      const scopeSelect = card.querySelector("[data-scope]");
+      const lgaSelect = card.querySelector("[data-lga]");
+      const wardSelect = card.querySelector("[data-ward]");
+      const puSelect = card.querySelector("[data-pu]");
+      const lgas = [...new Set(geographyRows.map(x => x.lga_name).filter(Boolean))];
+      lgaSelect.innerHTML = '<option value="">Select LGA</option>' +
+        lgas.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+      lgaSelect.disabled = false;
+
+      function fillWards() {
+        const found = new Map();
+        geographyRows.filter(x => x.lga_name === lgaSelect.value).forEach(x => {
+          found.set(String(x.ward_code), x.ward_name);
+        });
+        wardSelect.innerHTML = '<option value="">Select ward</option>' +
+          [...found].map(([code,name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)} (${escapeHtml(code)})</option>`).join("");
+        wardSelect.disabled = !lgaSelect.value;
+        puSelect.innerHTML = '<option value="">Select polling unit</option>';
+        puSelect.disabled = true;
+      }
+      function fillPollingUnits() {
+        const units = geographyRows.filter(x =>
+          x.lga_name === lgaSelect.value && String(x.ward_code) === wardSelect.value);
+        puSelect.innerHTML = '<option value="">Select polling unit</option>' +
+          units.map(x => `<option value="${escapeHtml(x.full_code)}">${escapeHtml(x.pu_name || x.pu_code || x.full_code)} — ${escapeHtml(x.full_code)}</option>`).join("");
+        puSelect.disabled = !wardSelect.value;
+      }
+      lgaSelect.addEventListener("change", fillWards);
+      wardSelect.addEventListener("change", fillPollingUnits);
+      scopeSelect.addEventListener("change", () => {
+        const state = scopeSelect.value === "state";
+        lgaSelect.hidden = wardSelect.hidden = puSelect.hidden = state;
+        if (state) { lgaSelect.value = ""; fillWards(); }
+      });
+      scopeSelect.dispatchEvent(new Event("change"));
+
       card.querySelectorAll("button[data-action]").forEach(button => {
         button.onclick = async () => {
           const action = button.dataset.action;
           const role = card.querySelector("[data-role]").value;
-          const scope_type = card.querySelector("[data-scope]").value;
-          const scope_value = card.querySelector("[data-scope-value]").value.trim();
+          const scope_type = scopeSelect.value;
+          const lga_name = lgaSelect.value;
+          const ward_code = wardSelect.value;
+          const full_code = puSelect.value;
+          let scope_value = "";
+          if (scope_type === "lga") scope_value = lga_name;
+          if (scope_type === "ward") scope_value = lga_name && ward_code ? `${lga_name}|${ward_code}` : "";
+          if (scope_type === "polling_unit") scope_value = full_code;
           if (action === "approve" && scope_type !== "state" && !scope_value) {
-            alert("Enter the LGA, ward or polling-unit code for this scope."); return;
+            alert("Select the required geography from the verified directory.");
+            return;
           }
           if (action === "suspend" && !window.confirm("Suspend this account?")) return;
           button.disabled = true;
           const result = await client.functions.invoke("sdp-access-admin", {
-            body: { action, user_id: user.user_id, role, scope_type, scope_value }
+            body: { action, user_id: user.user_id, role, scope_type, scope_value, lga_name, ward_code, full_code }
           });
           if (result.error || result.data?.error) {
             alert(result.data?.error || result.error.message);
