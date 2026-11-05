@@ -184,6 +184,47 @@
         .slice(0, 2)
         .toUpperCase();
     }
+
+    // Temporary authenticated RPC test for Android.
+    if (access.role === "situation_room_admin") {
+      let testButton = document.getElementById("sdpOverviewTest");
+
+      if (!testButton) {
+        testButton = document.createElement("button");
+        testButton.id = "sdpOverviewTest";
+        testButton.textContent = "TEST OPERATIONAL DATABASE";
+        testButton.style.cssText =
+          "width:100%;padding:14px;margin-top:14px;border:0;border-radius:9px;background:#ed8a36;color:#172b25;font-weight:800";
+
+        panel.appendChild(testButton);
+      }
+
+      testButton.onclick = async () => {
+        testButton.disabled = true;
+        testButton.textContent = "CHECKING DATABASE...";
+
+        const { data, error } = await window.sdpSupabase.rpc(
+          "sdp_situation_room_overview"
+        );
+
+        if (error) {
+          testButton.textContent = "DATABASE TEST FAILED";
+          alert("Database test failed: " + error.message);
+        } else {
+          testButton.textContent = "DATABASE CONNECTION SUCCESSFUL";
+          alert(
+            "Database connection successful!\n\n" +
+            "Role: " + data.role + "\n" +
+            "Scope: " + data.scope_type + "\n" +
+            "Location: " + data.scope_value + "\n" +
+            "Verified polling units: " + data.verified_polling_units + "\n" +
+            "Total incidents: " + data.total_incidents
+          );
+        }
+
+        testButton.disabled = false;
+      };
+    }
   }
 
   async function verifyAccess() {
