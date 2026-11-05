@@ -142,14 +142,26 @@
     </div>
   `;
 
-  // Restrict navigation until each module has its own
-  // implemented and tested permissions.
+  // Hide all operational pages that are not yet authorised.
+  // Keep only the Command Centre navigation entry.
   document.querySelectorAll(".sidebar .nav [data-page]").forEach(button => {
-    button.hidden = true;
+    if (button.dataset.page === "overview") {
+      button.style.display = "";
+    } else {
+      button.style.display = "none";
+    }
   });
 
   document.querySelectorAll(".sidebar .nav-label").forEach(label => {
     label.textContent = "Authorised workspace";
+  });
+
+  // Hide the old general preview dashboard underneath
+  // the new role-specific workspace.
+  Array.from(overview.children).forEach(element => {
+    if (element !== panel) {
+      element.style.display = "none";
+    }
   });
 
   const workspaceName =
