@@ -311,11 +311,30 @@
     }
   });
 
+  // Always require users to sign in when the page is opened.
+  // Do not automatically restore an existing GPS Admin session.
   client.auth.getSession().then(async ({ data, error }) => {
-    if (error) { lock(); say(error.message, "#ffaaa4"); return; }
+    lock();
+
+    if (error) {
+      say("Unable to check the previous session. Please refresh the page.", "#ffaaa4");
+      return;
+    }
+
+    // Clear only this browser's saved session.
     if (data.session) {
-      try { await verifyAccess(); }
-      catch (e) { await client.auth.signOut(); say(e.message, "#ffaaa4"); }
-    } else lock();
+      const { error: signOutError } = await client.auth.signOut({
+        scope: "local"
+      });
+
+      if (signOutError) {
+        say("The previous session could not be cleared. Refresh the page before signing in.", "#ffaaa4");
+        return;
+      }
+    }
+
+    form.reset();
+    showLogin();
+    say("Enter your email and password to sign in.");
   });
 })();
