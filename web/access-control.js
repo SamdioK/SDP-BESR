@@ -41,6 +41,151 @@
     nav.appendChild(btn);
   }
 
+  const ROLE_WORKSPACES = {
+    situation_room_admin: {
+      title: "Situation Room Administrator",
+      description: "Coordinate situation room operations, review activity and oversee authorised escalation.",
+      modules: ["Command overview", "Incident coordination", "Operational reporting", "Notifications", "Activity review"]
+    },
+    camera_admin: {
+      title: "Camera Administrator",
+      description: "Manage authorised camera inventory, assignments and device status.",
+      modules: ["Camera inventory", "Device assignments", "Camera health", "Camera audit"]
+    },
+    camera_operator: {
+      title: "Camera Operator",
+      description: "Operate only assigned cameras under approved privacy procedures.",
+      modules: ["Assigned cameras", "Connection status", "Incident references"]
+    },
+    lga_coordinator: {
+      title: "LGA Coordinator",
+      description: "Coordinate authorised field activity within your assigned LGA.",
+      modules: ["LGA overview", "Ward coordination", "Field reports", "Incident escalation"]
+    },
+    ward_officer: {
+      title: "Ward Officer",
+      description: "Coordinate authorised reporting within your assigned ward.",
+      modules: ["Ward overview", "Polling-unit directory", "Field reports", "Incident reporting"]
+    },
+    incident_verifier: {
+      title: "Incident Verification Desk",
+      description: "Review incident submissions and document verification decisions.",
+      modules: ["Incident queue", "Verification checklist", "Evidence references", "Escalation history"]
+    },
+    evidence_officer: {
+      title: "Evidence Management Desk",
+      description: "Catalogue authorised evidence and maintain traceable handling records.",
+      modules: ["Evidence register", "Case references", "Chain of custody", "Evidence audit"]
+    },
+    legal_officer: {
+      title: "Legal and Compliance Desk",
+      description: "Review legal and compliance issues and support statement clearance.",
+      modules: ["Compliance matters", "Statement review", "Legal guidance", "Decision records"]
+    },
+    read_only: {
+      title: "Read-only Monitoring Workspace",
+      description: "View only information authorised for your geographical assignment.",
+      modules: ["Situation summary", "Permitted reports", "Notifications"]
+    }
+  };
+
+  function renderRoleWorkspace(access) {
+    const config = ROLE_WORKSPACES[access.role];
+    const overview = document.getElementById("view-overview");
+
+    if (!config || !overview) return;
+
+    const scopes = {
+      state: "Benue State (Statewide)",
+      lga: access.scope_value || "Assigned LGA",
+      ward: access.scope_value || "Assigned Ward",
+      polling_unit: access.scope_value || "Assigned Polling Unit"
+    };
+
+    let panel = document.getElementById("sdpRoleWorkspace");
+
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "sdpRoleWorkspace";
+      panel.style.cssText =
+        "margin-bottom:16px;padding:20px;border:1px solid #8755a8;border-radius:12px;background:linear-gradient(120deg,#173d38,#302447)";
+      overview.prepend(panel);
+    }
+
+    panel.innerHTML = `
+      <div style="font-size:9px;letter-spacing:2px;color:#dfc5f4;font-weight:800">
+        AUTHORISED ROLE WORKSPACE
+      </div>
+
+      <h1 style="font-size:23px;margin:10px 0;color:white">
+        ${escapeHtml(config.title)}
+      </h1>
+
+      <p style="font-size:11px;line-height:1.6;color:#c4d8ce">
+        ${escapeHtml(config.description)}
+      </p>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
+        <span class="election-scope">
+          ROLE: ${escapeHtml(access.role.replaceAll("_"," ").toUpperCase())}
+        </span>
+        <span class="election-scope">
+          SCOPE: ${escapeHtml(scopes[access.scope_type] || "Unspecified")}
+        </span>
+        <span class="election-scope">ACCOUNT: ACTIVE</span>
+      </div>
+
+      <h3 style="font-size:11px;color:#f0c17c">WORKSPACE MODULES</h3>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">
+        ${config.modules.map(module => `
+          <div style="padding:12px;border:1px solid #456b60;border-radius:8px;background:#092d28">
+            <b style="font-size:10px;color:#e5f1e9">
+              ${escapeHtml(module)}
+            </b>
+            <div style="font-size:8px;color:#e5bd68;margin-top:7px">
+              MODULE INTEGRATION PENDING
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <p style="font-size:9px;line-height:1.6;color:#e8c89f;margin-top:15px">
+        Your account is active. Operational actions will be enabled after
+        module permissions, database policies and server-side geographical
+        restrictions have been implemented and tested.
+      </p>
+    `;
+
+    // Hide modules until their permissions are implemented.
+    document.querySelectorAll(".sidebar .nav [data-page]").forEach(button => {
+      button.hidden = true;
+    });
+
+    document.querySelectorAll(".sidebar .nav-label").forEach(label => {
+      label.textContent = "Authorised workspace";
+    });
+
+    const workspaceName =
+      document.querySelector(".sidebar .workspace strong");
+
+    if (workspaceName) workspaceName.textContent = config.title;
+
+    const title = document.getElementById("topTitle");
+    if (title) title.textContent = config.title;
+
+    const avatar = document.querySelector(".topbar .avatar");
+
+    if (avatar) {
+      avatar.textContent = access.role
+        .split("_")
+        .map(part => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+    }
+  }
+
   async function verifyAccess() {
     lock();
     say("Checking your SDP-BESR access...");
@@ -68,10 +213,18 @@
       return;
     }
 
-    await client.auth.signOut();
-    say("Your account is approved as " + (access.role || "an authorised user") +
-      ", with " + (access.scope_type || "unassigned") +
-      " scope. Your operational workspace will open after module-level permissions are enabled. Your approval is retained.");
+    if (!ROLE_WORKSPACES[access.role]) {
+      await client.auth.signOut({ scope: "local" });
+      say("Your account has an unrecognised operational role. Contact the platform administrator.", "#ffaaa4");
+      return;
+    }
+
+    gate.style.display = "none";
+    app.style.visibility = "visible";
+
+    renderRoleWorkspace(access);
+
+    say("Access verified. Opening your authorised role workspace.", "#9ce0bd");
   }
 
   form.addEventListener("submit", async function (event) {
@@ -311,30 +464,11 @@
     }
   });
 
-  // Always require users to sign in when the page is opened.
-  // Do not automatically restore an existing GPS Admin session.
   client.auth.getSession().then(async ({ data, error }) => {
-    lock();
-
-    if (error) {
-      say("Unable to check the previous session. Please refresh the page.", "#ffaaa4");
-      return;
-    }
-
-    // Clear only this browser's saved session.
+    if (error) { lock(); say(error.message, "#ffaaa4"); return; }
     if (data.session) {
-      const { error: signOutError } = await client.auth.signOut({
-        scope: "local"
-      });
-
-      if (signOutError) {
-        say("The previous session could not be cleared. Refresh the page before signing in.", "#ffaaa4");
-        return;
-      }
-    }
-
-    form.reset();
-    showLogin();
-    say("Enter your email and password to sign in.");
+      try { await verifyAccess(); }
+      catch (e) { await client.auth.signOut(); say(e.message, "#ffaaa4"); }
+    } else lock();
   });
 })();
