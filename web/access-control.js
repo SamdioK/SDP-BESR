@@ -596,6 +596,311 @@
     workspacePanel.appendChild(incidentButton);
   }
 
+  // PHASE 4.3C: Incident Verifier Review Desk
+  if (access.role === "incident_verifier") {
+    const verifierButton = document.createElement("button");
+
+    verifierButton.id = "sdpVerifierDeskButton";
+    verifierButton.type = "button";
+    verifierButton.textContent = "OPEN INCIDENT VERIFICATION DESK";
+    verifierButton.style.cssText =
+      "width:100%;padding:15px;margin-top:14px;border:1px solid #a36bc1;border-radius:9px;background:#302447;color:white;font-weight:800";
+
+    panel.appendChild(verifierButton);
+
+    verifierButton.onclick = openVerifierDesk;
+  }
+
+  function openVerifierDesk() {
+    let desk = document.getElementById("sdpVerifierDesk");
+
+    if (desk) {
+      desk.style.display = "block";
+      return;
+    }
+
+    desk = document.createElement("section");
+    desk.id = "sdpVerifierDesk";
+    desk.style.cssText =
+      "position:fixed;inset:0;z-index:1000003;background:#061f1c;overflow-y:auto;padding:14px;color:#e5f1e9";
+
+    desk.innerHTML = `
+      <div style="max-width:850px;margin:0 auto;padding-bottom:35px">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;color:#d8b5f1;font-weight:800">
+              SDP-BESR · VERIFICATION
+            </div>
+            <h2 style="font-size:22px;margin:8px 0">Incident Verification Desk</h2>
+            <div id="sdpVerifierScope" style="font-size:11px;color:#a9c7b8">
+              Loading authorised scope...
+            </div>
+          </div>
+
+          <button id="sdpVerifierClose"
+            style="padding:11px;border:1px solid #8755a8;border-radius:8px;background:#302447;color:white">
+            Close
+          </button>
+        </div>
+
+        <div style="margin-top:18px;padding:14px;background:#123a33;border:1px solid #456b60;border-radius:10px">
+
+          <b style="font-size:11px;color:#f0c17c">REVIEW QUEUE</b>
+
+          <select id="sdpVerifierStatus"
+            style="width:100%;margin-top:10px;padding:13px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white">
+            <option value="">All statuses</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under review</option>
+            <option value="referred">Referred</option>
+            <option value="closed">Closed</option>
+            <option value="unsubstantiated">Unsubstantiated</option>
+          </select>
+
+          <button id="sdpVerifierRefresh"
+            style="width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#ed8a36;color:#172b25;font-weight:800">
+            REFRESH REVIEW QUEUE
+          </button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px">
+          <b style="font-size:12px;color:#f0c17c">INCIDENTS FOR REVIEW</b>
+          <span id="sdpVerifierCount" style="font-size:10px;color:#a9c7b8">Loading...</span>
+        </div>
+
+        <div id="sdpVerifierResults">
+          Loading reports...
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button id="sdpVerifierPrevious"
+            style="flex:1;padding:12px;border:1px solid #456b60;border-radius:8px;background:#123a33;color:white">
+            Previous
+          </button>
+
+          <button id="sdpVerifierNext"
+            style="flex:1;padding:12px;border:1px solid #8755a8;border-radius:8px;background:#302447;color:white">
+            Next
+          </button>
+        </div>
+
+        <p style="font-size:9px;line-height:1.6;color:#a9c7b8;margin-top:18px">
+          Verification decisions must be based on documented evidence and
+          careful review. A report is not proof of an allegation.
+        </p>
+      </div>
+    `;
+
+    document.body.appendChild(desk);
+
+    let offset = 0;
+    const pageSize = 50;
+    let total = 0;
+
+    const results = desk.querySelector("#sdpVerifierResults");
+    const count = desk.querySelector("#sdpVerifierCount");
+
+    async function loadVerifierQueue() {
+      results.innerHTML = `
+        <div style="padding:18px;background:#123a33;border-radius:9px">
+          Loading authorised reports...
+        </div>
+      `;
+
+      const { data, error } = await window.sdpSupabase.rpc(
+        "sdp_incident_verifier_queue",
+        {
+          p_status: desk.querySelector("#sdpVerifierStatus").value || null,
+          p_limit: pageSize,
+          p_offset: offset
+        }
+      );
+
+      if (error) {
+        results.innerHTML = `
+          <div style="padding:15px;background:#3b2526;border:1px solid #b75c51;border-radius:9px;color:#ffd0c8">
+            <b>Could not load verification queue.</b>
+            <p>${escapeHtml(error.message)}</p>
+          </div>
+        `;
+        count.textContent = "Loading failed";
+        return;
+      }
+
+      total = Number(data.total_matching || 0);
+
+      desk.querySelector("#sdpVerifierScope").textContent =
+        "Authorised scope: " + data.scope_value + " · " +
+        data.scope_type.toUpperCase();
+
+      count.textContent =
+        total.toLocaleString("en-GB") + " matching reports";
+
+      const reports = data.reports || [];
+
+      if (!reports.length) {
+        results.innerHTML = `
+          <div style="padding:22px;background:#123a33;border:1px solid #456b60;border-radius:9px;color:#a9c7b8">
+            No incident reports are available for the selected review filter.
+          </div>
+        `;
+      } else {
+        results.innerHTML = reports.map(report => `
+          <article data-incident-id="${escapeHtml(report.id)}"
+            style="padding:15px;margin-bottom:12px;background:#123a33;border:1px solid #456b60;border-radius:10px">
+
+            <b style="font-size:12px;color:#fff">
+              ${escapeHtml((report.category || "Other").replaceAll("_"," ").toUpperCase())}
+            </b>
+
+            <div style="font-size:9px;color:#f0c17c;margin-top:7px">
+              STATUS: ${escapeHtml((report.status || "").replaceAll("_"," ").toUpperCase())}
+            </div>
+
+            <p style="font-size:11px;line-height:1.6;color:#d0ded7">
+              ${escapeHtml(report.description || "No description supplied")}
+            </p>
+
+            <div style="font-size:10px;line-height:1.8;color:#a9c7b8">
+              <b>Location:</b> ${escapeHtml(report.lga || "")} LGA<br>
+              <b>Ward:</b> ${escapeHtml(report.ward || "Unavailable")}<br>
+              <b>Polling unit:</b> ${escapeHtml(report.polling_unit || "Unavailable")}<br>
+              <b>PU code:</b> ${escapeHtml(report.polling_unit_code || "Unavailable")}<br>
+              <b>Observed:</b> ${escapeHtml(report.observed_at || "Not recorded")}
+            </div>
+
+            ${
+              report.status === "submitted" ||
+              report.status === "under_review"
+                ? `
+                  <div style="margin-top:13px;border-top:1px solid #456b60;padding-top:12px">
+
+                    <label style="font-size:10px;color:#f0c17c">
+                      REVIEW DECISION
+                    </label>
+
+                    <select data-review-action
+                      style="width:100%;padding:12px;margin-top:7px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white">
+
+                      ${
+                        report.status === "submitted"
+                          ? `<option value="accepted_for_review">Accept for review</option>`
+                          : ""
+                      }
+
+                      ${
+                        report.status === "under_review"
+                          ? `
+                            <option value="referred">Refer for further action</option>
+                            <option value="closed">Close after review</option>
+                            <option value="marked_unsubstantiated">Mark unsubstantiated</option>
+                          `
+                          : ""
+                      }
+                    </select>
+
+                    <textarea data-review-notes
+                      rows="4"
+                      maxlength="3000"
+                      placeholder="Enter the reasons for your decision and supporting review notes..."
+                      style="width:100%;box-sizing:border-box;padding:12px;margin-top:10px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white"></textarea>
+
+                    <button data-review-submit
+                      style="width:100%;padding:13px;margin-top:10px;border:0;border-radius:8px;background:#ed8a36;color:#172b25;font-weight:800">
+                      SUBMIT REVIEW DECISION
+                    </button>
+
+                    <div data-review-message
+                      style="font-size:10px;margin-top:8px;color:#a9c7b8"></div>
+                  </div>
+                `
+                : `
+                  <div style="margin-top:12px;padding:10px;background:#092d28;border-radius:8px;font-size:10px;color:#a9c7b8">
+                    This report is not currently available for another review decision.
+                    Current status: ${escapeHtml(report.status || "Unknown")}
+                  </div>
+                `
+            }
+          </article>
+        `).join("");
+
+        // Bind review actions to each incident card.
+        results.querySelectorAll("[data-review-submit]").forEach(button => {
+          button.addEventListener("click", async () => {
+            const card = button.closest("[data-incident-id]");
+            const incidentId = card.dataset.incidentId;
+            const action = card.querySelector("[data-review-action]").value;
+            const notes = card.querySelector("[data-review-notes]").value.trim();
+            const message = card.querySelector("[data-review-message]");
+
+            if (notes.length < 5) {
+              message.textContent = "Please provide meaningful review notes (at least 5 characters).";
+              return;
+            }
+
+            const confirmed = window.confirm(
+              "Submit this incident review decision? This action will be recorded in the audit history."
+            );
+
+            if (!confirmed) return;
+
+            button.disabled = true;
+            button.textContent = "SUBMITTING...";
+
+            const { data: decision, error: decisionError } =
+              await window.sdpSupabase.rpc(
+                "sdp_incident_review_action",
+                {
+                  p_incident_id: incidentId,
+                  p_action: action,
+                  p_notes: notes
+                }
+              );
+
+            if (decisionError) {
+              button.disabled = false;
+              button.textContent = "SUBMIT REVIEW DECISION";
+              message.textContent = "Decision rejected: " + decisionError.message;
+              return;
+            }
+
+            message.textContent =
+              "Decision recorded. New status: " +
+              decision.new_status.replaceAll("_"," ").toUpperCase();
+
+            await loadVerifierQueue();
+          });
+        });
+      }
+
+      desk.querySelector("#sdpVerifierPrevious").disabled = offset === 0;
+      desk.querySelector("#sdpVerifierNext").disabled =
+        offset + pageSize >= total;
+    }
+
+    desk.querySelector("#sdpVerifierClose").onclick = () => desk.remove();
+
+    desk.querySelector("#sdpVerifierRefresh").onclick = () => {
+      offset = 0;
+      loadVerifierQueue();
+    };
+
+    desk.querySelector("#sdpVerifierPrevious").onclick = () => {
+      offset = Math.max(0, offset - pageSize);
+      loadVerifierQueue();
+    };
+
+    desk.querySelector("#sdpVerifierNext").onclick = () => {
+      if (offset + pageSize < total) {
+        offset += pageSize;
+        loadVerifierQueue();
+      }
+    };
+
+    loadVerifierQueue();
+  }
+
   if (access.role === "situation_room_admin") {
     loadOperationalOverview();
   } else {
