@@ -90,142 +90,276 @@
   };
 
   function renderRoleWorkspace(access) {
-    const config = ROLE_WORKSPACES[access.role];
-    const overview = document.getElementById("view-overview");
+  const config = ROLE_WORKSPACES[access.role];
+  const overview = document.getElementById("view-overview");
 
-    if (!config || !overview) return;
+  if (!config || !overview) return;
 
-    const scopes = {
-      state: "Benue State (Statewide)",
-      lga: access.scope_value || "Assigned LGA",
-      ward: access.scope_value || "Assigned Ward",
-      polling_unit: access.scope_value || "Assigned Polling Unit"
-    };
+  const scopes = {
+    state: "Benue State (Statewide)",
+    lga: access.scope_value || "Assigned LGA",
+    ward: access.scope_value || "Assigned Ward",
+    polling_unit: access.scope_value || "Assigned Polling Unit"
+  };
 
-    let panel = document.getElementById("sdpRoleWorkspace");
+  let panel = document.getElementById("sdpRoleWorkspace");
 
-    if (!panel) {
-      panel = document.createElement("section");
-      panel.id = "sdpRoleWorkspace";
-      panel.style.cssText =
-        "margin-bottom:16px;padding:20px;border:1px solid #8755a8;border-radius:12px;background:linear-gradient(120deg,#173d38,#302447)";
-      overview.prepend(panel);
-    }
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "sdpRoleWorkspace";
+    panel.style.cssText =
+      "margin-bottom:16px;padding:20px;border:1px solid #8755a8;border-radius:12px;background:linear-gradient(120deg,#173d38,#302447)";
+    overview.prepend(panel);
+  }
 
-    panel.innerHTML = `
-      <div style="font-size:9px;letter-spacing:2px;color:#dfc5f4;font-weight:800">
-        AUTHORISED ROLE WORKSPACE
+  panel.innerHTML = `
+    <div style="font-size:9px;letter-spacing:2px;color:#dfc5f4;font-weight:800">
+      AUTHORISED ROLE WORKSPACE
+    </div>
+
+    <h1 style="font-size:23px;margin:10px 0;color:white">
+      ${escapeHtml(config.title)}
+    </h1>
+
+    <p style="font-size:11px;line-height:1.6;color:#c4d8ce">
+      ${escapeHtml(config.description)}
+    </p>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
+      <span class="election-scope">
+        ROLE: ${escapeHtml(access.role.replaceAll("_"," ").toUpperCase())}
+      </span>
+      <span class="election-scope">
+        SCOPE: ${escapeHtml(scopes[access.scope_type] || "Unspecified")}
+      </span>
+      <span class="election-scope">ACCOUNT: ACTIVE</span>
+    </div>
+
+    <div id="sdpOverviewLive">
+      <div style="padding:18px;border:1px solid #456b60;border-radius:9px;background:#092d28;color:#c4d8ce">
+        Loading authorised operational information...
       </div>
+    </div>
+  `;
 
-      <h1 style="font-size:23px;margin:10px 0;color:white">
-        ${escapeHtml(config.title)}
-      </h1>
+  // Restrict navigation until each module has its own
+  // implemented and tested permissions.
+  document.querySelectorAll(".sidebar .nav [data-page]").forEach(button => {
+    button.hidden = true;
+  });
 
-      <p style="font-size:11px;line-height:1.6;color:#c4d8ce">
-        ${escapeHtml(config.description)}
-      </p>
+  document.querySelectorAll(".sidebar .nav-label").forEach(label => {
+    label.textContent = "Authorised workspace";
+  });
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
-        <span class="election-scope">
-          ROLE: ${escapeHtml(access.role.replaceAll("_"," ").toUpperCase())}
-        </span>
-        <span class="election-scope">
-          SCOPE: ${escapeHtml(scopes[access.scope_type] || "Unspecified")}
-        </span>
-        <span class="election-scope">ACCOUNT: ACTIVE</span>
+  const workspaceName =
+    document.querySelector(".sidebar .workspace strong");
+
+  if (workspaceName) workspaceName.textContent = config.title;
+
+  const title = document.getElementById("topTitle");
+  if (title) title.textContent = config.title;
+
+  const avatar = document.querySelector(".topbar .avatar");
+
+  if (avatar) {
+    avatar.textContent = access.role
+      .split("_")
+      .map(part => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  // Load the server-authorised operational overview.
+  async function loadOperationalOverview() {
+    const root = document.getElementById("sdpOverviewLive");
+    if (!root) return;
+
+    root.innerHTML = `
+      <div style="padding:18px;background:#092d28;border-radius:9px;color:#c4d8ce">
+        Loading operational data...
       </div>
-
-      <h3 style="font-size:11px;color:#f0c17c">WORKSPACE MODULES</h3>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">
-        ${config.modules.map(module => `
-          <div style="padding:12px;border:1px solid #456b60;border-radius:8px;background:#092d28">
-            <b style="font-size:10px;color:#e5f1e9">
-              ${escapeHtml(module)}
-            </b>
-            <div style="font-size:8px;color:#e5bd68;margin-top:7px">
-              MODULE INTEGRATION PENDING
-            </div>
-          </div>
-        `).join("")}
-      </div>
-
-      <p style="font-size:9px;line-height:1.6;color:#e8c89f;margin-top:15px">
-        Your account is active. Operational actions will be enabled after
-        module permissions, database policies and server-side geographical
-        restrictions have been implemented and tested.
-      </p>
     `;
 
-    // Hide modules until their permissions are implemented.
-    document.querySelectorAll(".sidebar .nav [data-page]").forEach(button => {
-      button.hidden = true;
-    });
+    const { data, error } = await window.sdpSupabase.rpc(
+      "sdp_situation_room_overview"
+    );
 
-    document.querySelectorAll(".sidebar .nav-label").forEach(label => {
-      label.textContent = "Authorised workspace";
-    });
+    if (error) {
+      root.innerHTML = `
+        <div style="padding:15px;border:1px solid #b75c51;border-radius:9px;background:#3b2526;color:#ffd0c8">
+          <b>Operational data could not be loaded.</b>
+          <p style="font-size:10px">${escapeHtml(error.message)}</p>
+          <button id="sdpOverviewRefresh" style="padding:10px;border:0;border-radius:7px;background:#ed8a36;color:#172b25;font-weight:700">
+            Retry
+          </button>
+        </div>
+      `;
 
-    const workspaceName =
-      document.querySelector(".sidebar .workspace strong");
+      document.getElementById("sdpOverviewRefresh")
+        ?.addEventListener("click", loadOperationalOverview);
 
-    if (workspaceName) workspaceName.textContent = config.title;
-
-    const title = document.getElementById("topTitle");
-    if (title) title.textContent = config.title;
-
-    const avatar = document.querySelector(".topbar .avatar");
-
-    if (avatar) {
-      avatar.textContent = access.role
-        .split("_")
-        .map(part => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+      return;
     }
 
-    // Temporary authenticated RPC test for Android.
-    if (access.role === "situation_room_admin") {
-      let testButton = document.getElementById("sdpOverviewTest");
+    const statuses = data.incidents_by_status || {};
+    const total = Number(data.total_incidents || 0);
+    const units = Number(data.verified_polling_units || 0);
 
-      if (!testButton) {
-        testButton = document.createElement("button");
-        testButton.id = "sdpOverviewTest";
-        testButton.textContent = "TEST OPERATIONAL DATABASE";
-        testButton.style.cssText =
-          "width:100%;padding:14px;margin-top:14px;border:0;border-radius:9px;background:#ed8a36;color:#172b25;font-weight:800";
+    const pending = Number(
+      statuses.submitted || 0
+    );
 
-        panel.appendChild(testButton);
+    const reviewing = Number(
+      statuses.under_review || 0
+    );
+
+    const closed = Number(
+      statuses.closed || 0
+    );
+
+    const reports = Array.isArray(data.recent_incidents)
+      ? data.recent_incidents
+      : [];
+
+    function formatDate(value) {
+      if (!value) return "Date not recorded";
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Date not available";
       }
 
-      testButton.onclick = async () => {
-        testButton.disabled = true;
-        testButton.textContent = "CHECKING DATABASE...";
+      return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
 
-        const { data, error } = await window.sdpSupabase.rpc(
-          "sdp_situation_room_overview"
-        );
+    root.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <b style="font-size:11px;color:#f0c17c">LIVE OPERATIONAL OVERVIEW</b>
+          <div style="font-size:9px;color:#a9c7b8;margin-top:4px">
+            Server-authorised geographical data
+          </div>
+        </div>
 
-        if (error) {
-          testButton.textContent = "DATABASE TEST FAILED";
-          alert("Database test failed: " + error.message);
-        } else {
-          testButton.textContent = "DATABASE CONNECTION SUCCESSFUL";
-          alert(
-            "Database connection successful!\n\n" +
-            "Role: " + data.role + "\n" +
-            "Scope: " + data.scope_type + "\n" +
-            "Location: " + data.scope_value + "\n" +
-            "Verified polling units: " + data.verified_polling_units + "\n" +
-            "Total incidents: " + data.total_incidents
-          );
+        <button id="sdpOverviewRefresh" style="padding:9px 13px;border:1px solid #a36bc1;border-radius:7px;background:#302447;color:white;font-size:10px">
+          ↻ Refresh
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px">
+
+        <div style="padding:15px;background:#092d28;border:1px solid #456b60;border-radius:9px">
+          <div style="font-size:9px;color:#a9c7b8">VERIFIED POLLING UNITS</div>
+          <div style="font-size:27px;font-weight:800;color:#fff;margin-top:7px">
+            ${units.toLocaleString("en-GB")}
+          </div>
+        </div>
+
+        <div style="padding:15px;background:#092d28;border:1px solid #456b60;border-radius:9px">
+          <div style="font-size:9px;color:#a9c7b8">TOTAL INCIDENTS</div>
+          <div style="font-size:27px;font-weight:800;color:#fff;margin-top:7px">
+            ${total.toLocaleString("en-GB")}
+          </div>
+        </div>
+
+        <div style="padding:15px;background:#092d28;border:1px solid #456b60;border-radius:9px">
+          <div style="font-size:9px;color:#a9c7b8">AWAITING REVIEW</div>
+          <div style="font-size:24px;font-weight:800;color:#ffc47e;margin-top:7px">
+            ${pending.toLocaleString("en-GB")}
+          </div>
+        </div>
+
+        <div style="padding:15px;background:#092d28;border:1px solid #456b60;border-radius:9px">
+          <div style="font-size:9px;color:#a9c7b8">UNDER REVIEW</div>
+          <div style="font-size:24px;font-weight:800;color:#d8b5f1;margin-top:7px">
+            ${reviewing.toLocaleString("en-GB")}
+          </div>
+        </div>
+
+        <div style="padding:15px;background:#092d28;border:1px solid #456b60;border-radius:9px">
+          <div style="font-size:9px;color:#a9c7b8">CLOSED INCIDENTS</div>
+          <div style="font-size:24px;font-weight:800;color:#9ce0bd;margin-top:7px">
+            ${closed.toLocaleString("en-GB")}
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:18px">
+        <b style="font-size:11px;color:#f0c17c">RECENT INCIDENT REPORTS</b>
+
+        <div style="font-size:9px;color:#a9c7b8;margin:5px 0 10px">
+          Latest reports within your assigned geographical scope
+        </div>
+
+        ${
+          reports.length
+            ? reports.map(report => `
+              <article style="padding:12px;margin-bottom:8px;background:#092d28;border:1px solid #456b60;border-radius:8px">
+                <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                  <b style="font-size:10px;color:#fff">
+                    ${escapeHtml(report.category || "Uncategorised incident")}
+                  </b>
+
+                  <span style="font-size:8px;color:#f0c17c">
+                    ${escapeHtml(report.status || "Unknown status").replaceAll("_"," ").toUpperCase()}
+                  </span>
+                </div>
+
+                <p style="font-size:10px;line-height:1.5;color:#c4d8ce;margin:8px 0">
+                  ${escapeHtml(report.description || "No description supplied")}
+                </p>
+
+                <div style="font-size:9px;line-height:1.7;color:#a9c7b8">
+                  ${escapeHtml(report.lga || "")} LGA ·
+                  ${escapeHtml(report.ward || "Ward unavailable")} Ward<br>
+                  ${escapeHtml(report.polling_unit || "Polling unit unavailable")}<br>
+                  PU code: ${escapeHtml(report.polling_unit_code || "Not recorded")}<br>
+                  Reported: ${escapeHtml(formatDate(report.reported_at))}
+                </div>
+              </article>
+            `).join("")
+            : `
+              <div style="padding:18px;background:#092d28;border:1px solid #456b60;border-radius:9px;color:#a9c7b8;font-size:10px">
+                No incident reports have been recorded within this assigned scope.
+              </div>
+            `
         }
+      </div>
 
-        testButton.disabled = false;
-      };
+      <div style="font-size:9px;color:#a9c7b8;line-height:1.6;margin-top:14px">
+        Last updated: ${escapeHtml(formatDate(data.generated_at))}.
+        This is an internal operational overview, not an official election result or declaration.
+      </div>
+    `;
+
+    document.getElementById("sdpOverviewRefresh")
+      ?.addEventListener("click", loadOperationalOverview);
+  }
+
+  if (access.role === "situation_room_admin") {
+    loadOperationalOverview();
+  } else {
+    const root = document.getElementById("sdpOverviewLive");
+
+    if (root) {
+      root.innerHTML = `
+        <div style="padding:15px;background:#092d28;border-radius:9px;color:#c4d8ce">
+          This role's operational dashboard is awaiting its module integration.
+        </div>
+      `;
     }
   }
+}
 
   async function verifyAccess() {
     lock();
