@@ -358,6 +358,244 @@
       ?.addEventListener("click", loadOperationalOverview);
   }
 
+  // PHASE 4.2: Incident Coordination Desk
+  function openIncidentCoordinationDesk() {
+    let desk = document.getElementById("sdpIncidentDesk");
+
+    if (!desk) {
+      desk = document.createElement("section");
+      desk.id = "sdpIncidentDesk";
+      desk.style.cssText =
+        "position:fixed;inset:0;z-index:1000002;background:#061f1c;overflow-y:auto;padding:14px;color:#e5f1e9";
+
+      desk.innerHTML = `
+        <div style="max-width:850px;margin:0 auto;padding-bottom:35px">
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-size:9px;letter-spacing:2px;color:#d8b5f1;font-weight:800">
+                SDP-BESR · OPERATIONS
+              </div>
+              <h2 style="font-size:22px;margin:8px 0">Incident Coordination Desk</h2>
+              <div id="sdpIncidentScope" style="font-size:11px;color:#a9c7b8">
+                Loading authorised scope...
+              </div>
+            </div>
+            <button id="sdpIncidentClose"
+              style="padding:11px;border:1px solid #8755a8;border-radius:8px;background:#302447;color:white">
+              Close
+            </button>
+          </div>
+
+          <div style="margin-top:18px;padding:14px;background:#123a33;border:1px solid #456b60;border-radius:10px">
+            <b style="font-size:11px;color:#f0c17c">REPORT SEARCH</b>
+
+            <input id="sdpIncidentSearch"
+              type="search"
+              placeholder="Search description, ward or polling-unit code..."
+              style="width:100%;box-sizing:border-box;margin-top:10px;padding:13px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white">
+
+            <select id="sdpIncidentStatus"
+              style="width:100%;margin-top:10px;padding:13px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white">
+              <option value="">All statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="under_review">Under review</option>
+              <option value="referred">Referred</option>
+              <option value="closed">Closed</option>
+              <option value="unsubstantiated">Unsubstantiated</option>
+            </select>
+
+            <select id="sdpIncidentCategory"
+              style="width:100%;margin-top:10px;padding:13px;border:1px solid #456b60;border-radius:8px;background:#092d28;color:white">
+              <option value="">All categories</option>
+              <option value="security_concern">Security concern</option>
+              <option value="access_obstruction">Access obstruction</option>
+              <option value="equipment_issue">Equipment issue</option>
+              <option value="procedure_concern">Procedure concern</option>
+              <option value="other">Other</option>
+            </select>
+
+            <button id="sdpIncidentSearchButton"
+              style="width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#ed8a36;color:#172b25;font-weight:800">
+              SEARCH INCIDENT REGISTER
+            </button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 10px">
+            <b style="font-size:12px;color:#f0c17c">INCIDENT REGISTER</b>
+            <span id="sdpIncidentCount" style="font-size:10px;color:#a9c7b8">Loading...</span>
+          </div>
+
+          <div id="sdpIncidentResults">
+            <div style="padding:20px;background:#123a33;border-radius:9px">
+              Loading incident reports...
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button id="sdpIncidentPrevious"
+              style="flex:1;padding:12px;border:1px solid #456b60;border-radius:8px;background:#123a33;color:white">
+              Previous
+            </button>
+            <button id="sdpIncidentNext"
+              style="flex:1;padding:12px;border:1px solid #8755a8;border-radius:8px;background:#302447;color:white">
+              Next
+            </button>
+          </div>
+
+          <p style="font-size:9px;line-height:1.6;color:#a9c7b8;margin-top:18px">
+            Reports are observations or allegations awaiting appropriate review.
+            Displaying a report does not establish that the allegation is true.
+            This desk is currently read-only.
+          </p>
+        </div>
+      `;
+
+      document.body.appendChild(desk);
+
+      let offset = 0;
+      const pageSize = 50;
+      let total = 0;
+
+      const results = desk.querySelector("#sdpIncidentResults");
+      const count = desk.querySelector("#sdpIncidentCount");
+
+      async function loadIncidentReports() {
+        results.innerHTML = `
+          <div style="padding:20px;background:#123a33;border-radius:9px">
+            Loading incident reports...
+          </div>
+        `;
+
+        const { data, error } = await window.sdpSupabase.rpc(
+          "sdp_situation_room_incident_queue",
+          {
+            p_status: desk.querySelector("#sdpIncidentStatus").value || null,
+            p_category: desk.querySelector("#sdpIncidentCategory").value || null,
+            p_search: desk.querySelector("#sdpIncidentSearch").value.trim() || null,
+            p_limit: pageSize,
+            p_offset: offset
+          }
+        );
+
+        if (error) {
+          results.innerHTML = `
+            <div style="padding:15px;background:#3b2526;border:1px solid #b75c51;border-radius:9px;color:#ffd0c8">
+              <b>Could not load incident register.</b>
+              <p style="font-size:10px">${escapeHtml(error.message)}</p>
+            </div>
+          `;
+          count.textContent = "Loading failed";
+          return;
+        }
+
+        total = Number(data.total_matching || 0);
+
+        desk.querySelector("#sdpIncidentScope").textContent =
+          "Authorised scope: " + data.scope_value + " · " +
+          data.scope_type.toUpperCase();
+
+        count.textContent =
+          total.toLocaleString("en-GB") + " matching reports";
+
+        const reports = data.reports || [];
+
+        if (!reports.length) {
+          results.innerHTML = `
+            <div style="padding:22px;background:#123a33;border:1px solid #456b60;border-radius:9px;color:#a9c7b8">
+              No incident reports match the selected filters in this authorised scope.
+            </div>
+          `;
+        } else {
+          results.innerHTML = reports.map(report => {
+            const date = report.reported_at
+              ? new Date(report.reported_at).toLocaleString("en-GB")
+              : "Date unavailable";
+
+            return `
+              <article style="padding:15px;margin-bottom:10px;background:#123a33;border:1px solid #456b60;border-radius:10px">
+
+                <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                  <b style="font-size:12px;color:#fff">
+                    ${escapeHtml((report.category || "Other").replaceAll("_"," ").toUpperCase())}
+                  </b>
+
+                  <span style="font-size:9px;color:#f0c17c">
+                    ${escapeHtml((report.status || "unknown").replaceAll("_"," ").toUpperCase())}
+                  </span>
+                </div>
+
+                <p style="font-size:11px;line-height:1.6;color:#d0ded7">
+                  ${escapeHtml(report.description || "No description supplied")}
+                </p>
+
+                <div style="font-size:10px;line-height:1.8;color:#a9c7b8">
+                  <b>Location:</b> ${escapeHtml(report.lga || "")} LGA<br>
+                  <b>Ward:</b> ${escapeHtml(report.ward || "Unavailable")}<br>
+                  <b>Polling unit:</b> ${escapeHtml(report.polling_unit || "Unavailable")}<br>
+                  <b>PU code:</b> ${escapeHtml(report.polling_unit_code || "Unavailable")}<br>
+                  <b>Observed:</b> ${escapeHtml(report.observed_at || "Not recorded")}<br>
+                  <b>Reported:</b> ${escapeHtml(date)}
+                </div>
+
+                <div style="margin-top:10px;padding:9px;border-left:3px solid #d69b4e;background:#092d28;font-size:9px;color:#e5c99f">
+                  INFORMATION ONLY · Verification and further action require authorised procedures.
+                </div>
+              </article>
+            `;
+          }).join("");
+        }
+
+        desk.querySelector("#sdpIncidentPrevious").disabled = offset === 0;
+        desk.querySelector("#sdpIncidentNext").disabled =
+          offset + pageSize >= total;
+      }
+
+      desk.querySelector("#sdpIncidentClose").onclick = () => desk.remove();
+
+      desk.querySelector("#sdpIncidentSearchButton").onclick = () => {
+        offset = 0;
+        loadIncidentReports();
+      };
+
+      desk.querySelector("#sdpIncidentPrevious").onclick = () => {
+        offset = Math.max(0, offset - pageSize);
+        loadIncidentReports();
+      };
+
+      desk.querySelector("#sdpIncidentNext").onclick = () => {
+        if (offset + pageSize < total) {
+          offset += pageSize;
+          loadIncidentReports();
+        }
+      };
+
+      loadIncidentReports();
+    } else {
+      desk.style.display = "block";
+    }
+  }
+
+  // Add the Incident Coordination Desk entry to the administrator workspace.
+  const incidentButton = document.createElement("button");
+  incidentButton.type = "button";
+  incidentButton.textContent = "OPEN INCIDENT COORDINATION DESK";
+  incidentButton.style.cssText =
+    "width:100%;padding:15px;margin-top:14px;border:1px solid #a36bc1;border-radius:9px;background:#302447;color:white;font-weight:800";
+
+  incidentButton.onclick = openIncidentCoordinationDesk;
+
+  const workspacePanel = document.getElementById("sdpRoleWorkspace");
+
+  if (
+    access.role === "situation_room_admin" &&
+    workspacePanel &&
+    !document.getElementById("sdpIncidentDeskButton")
+  ) {
+    incidentButton.id = "sdpIncidentDeskButton";
+    workspacePanel.appendChild(incidentButton);
+  }
+
   if (access.role === "situation_room_admin") {
     loadOperationalOverview();
   } else {
