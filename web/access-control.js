@@ -5,6 +5,25 @@
   const form = document.getElementById("sdpAuthForm");
   const message = document.getElementById("sdpAuthMessage");
   const submit = document.getElementById("sdpAuthSubmit");
+
+  // Do not retain login credentials in the page.
+  form.setAttribute("autocomplete", "off");
+
+  const loginEmail = document.getElementById("sdpAuthEmail");
+  const loginPassword = document.getElementById("sdpAuthPassword");
+
+  loginEmail.setAttribute("autocomplete", "off");
+  loginEmail.setAttribute("autocapitalize", "none");
+  loginEmail.setAttribute("spellcheck", "false");
+
+  loginPassword.setAttribute("autocomplete", "off");
+  loginPassword.setAttribute("autocapitalize", "none");
+  loginPassword.setAttribute("spellcheck", "false");
+
+  // Start with empty login fields.
+  loginEmail.value = "";
+  loginPassword.value = "";
+
   const loginPanel = document.getElementById("sdpLoginPanel");
   const requestPanel = document.getElementById("sdpRequestPanel");
 
@@ -959,17 +978,37 @@
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
+
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+
+    if (!email || !password) {
+      say("Enter your email address and password before signing in.", "#ffaaa4");
+      return;
+    }
+
     submit.disabled = true;
     submit.textContent = "Signing in...";
+
+    // Clear the visible password immediately.
+    loginPassword.value = "";
+
     try {
-      const email = document.getElementById("sdpAuthEmail").value.trim();
-      const password = document.getElementById("sdpAuthPassword").value;
-      const { error } = await client.auth.signInWithPassword({ email, password });
+      const { error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
       if (error) throw error;
+
       await verifyAccess();
+
     } catch (error) {
+      await client.auth.signOut({ scope: "local" }).catch(() => {});
       say(error.message, "#ffaaa4");
+
     } finally {
+      loginPassword.value = "";
       submit.disabled = false;
       submit.textContent = "Sign In";
     }
