@@ -3352,9 +3352,27 @@ document.querySelectorAll("[data-election]").forEach(btn=>btn.addEventListener("
   const SUPABASE_KEY =
     "sb_publishable_3R6ExeGg6ZTR6gQKKhPDvA_xvlSwme1";
 
+  // Remove the previous persistent Supabase session only.
+  // Do not clear unrelated website storage.
+  try {
+    localStorage.removeItem(
+      "sb-mcbwbcqetrrwxfqfvhkc-auth-token"
+    );
+  } catch (error) {
+    console.warn("Previous authentication storage could not be cleared.");
+  }
+
+  // Never restore a previous login after a page reload.
   window.sdpSupabase = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_KEY
+    SUPABASE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    }
   );
 })();
 </script>
